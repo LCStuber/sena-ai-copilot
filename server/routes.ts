@@ -1,0 +1,292 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import { searchCompany, getCompanyFromUrl, vectorSearchCorpus } from "./services/company-research";
+import { processTranscript } from "./services/notes-generation";
+import { generateCoachingGuidance } from "./services/openai";
+import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema } from "@shared/schema";
+import { z } from "zod";
+
+function isAuthenticated(req: any, res: any, next: any) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized" });
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
+
+  // User routes
+  app.get("/api/user", isAuthenticated, (req: any, res) => {
+    res.json(req.user);
+  });
+
+  // Account routes
+  app.get("/api/accounts", isAuthenticated, async (req: any, res) => {
+    try {
+      const accounts = await storage.getAccountsByUser(req.user.id);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      res.status(500).json({ message: "Failed to fetch accounts" });
+    }
+  });
+
+  app.post("/api/accounts", isAuthenticated, async (req: any, res) => {
+    try {
+      const accountData = insertAccountSchema.parse({
+        ...req.body,
+        assignedTo: req.user.id,
+      });
+      const account = await storage.createAccount(accountData);
+      res.status(201).json(account);
+    } catch (error) {
+      console.error("Error creating account:", error);
+      res.status(400).json({ message: "Failed to create account" });
+    }
+  });
+
+  app.get("/api/accounts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const account = await storage.getAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      console.error("Error fetching account:", error);
+      res.status(500).json({ message: "Failed to fetch account" });
+    }
+  });
+
+  // Company Research routes
+  app.post("/api/research/company", isAuthenticated, async (req: any, res) => {
+    try {
+      const { query, lob, accountId } = req.body;
+      
+      if (!query || !lob) {
+        return res.status(400).json({ message: "Query and LOB are required" });
+      }
+
+      const results = await searchCompany(query, lob);
+      
+      // Save research if accountId provided
+      if (accountId) {
+        await storage.createCompanyResearch({
+          accountId,
+          query,
+          results,
+          sources: results.sources,
+          createdBy: req.user.id,
+        });
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error researching company:", error);
+      res.status(500).json({ message: "Failed to research company" });
+    }
+  });
+
+  app.post("/api/research/url", isAuthenticated, async (req: any, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const results = await getCompanyFromUrl(url);
+      res.json(results);
+    } catch (error) {
+      console.error("Error processing company URL:", error);
+      res.status(500).json({ message: "Failed to process company URL" });
+    }
+  });
+
+  app.post("/api/research/vector-search", isAuthenticated, async (req: any, res) => {
+    try {
+      const { company, k = 5 } = req.body;
+      
+      if (!company) {
+        return res.status(400).json({ message: "Company name is required" });
+      }
+
+      const results = await vectorSearchCorpus(company, k);
+      res.json(results);
+    } catch (error) {
+      console.error("Error in vector search:", error);
+      res.status(500).json({ message: "Failed to perform vector search" });
+    }
+  });
+
+  // Transcript and Notes routes
+  app.post("/api/transcripts/process", isAuthenticated, async (req: any, res) => {
+    try {
+      const { accountId, transcriptContent, frameworks, lob, userTimeZone, accountTimeZone } = req.body;
+      
+      if (!accountId || !transcriptContent || !frameworks || !lob) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const result = await processTranscript({
+        accountId,
+        transcriptContent,
+        frameworks,
+        lob,
+        userId: req.user.id,
+        userTimeZone: userTimeZone || 'UTC',
+        accountTimeZone,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing transcript:", error);
+      res.status(500).json({ message: "Failed to process transcript" });
+    }
+  });
+
+  app.get("/api/accounts/:accountId/notes", isAuthenticated, async (req: any, res) => {
+    try {
+      const notes = await storage.getFrameworkNotesByAccount(req.params.accountId);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  // Coaching routes
+  app.post("/api/coaching", isAuthenticated, async (req: any, res) => {
+    try {
+      const { transcript, frameworks, frameworkNotes, lob } = req.body;
+      
+      if (!transcript || !frameworks || !lob) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const guidance = await generateCoachingGuidance({
+        transcript,
+        frameworks,
+        frameworkNotes: frameworkNotes || [],
+        lob,
+      });
+
+      res.json({ guidance });
+    } catch (error) {
+      console.error("Error generating coaching guidance:", error);
+      res.status(500).json({ message: "Failed to generate coaching guidance" });
+    }
+  });
+
+  // Next Best Actions routes
+  app.get("/api/nbas", isAuthenticated, async (req: any, res) => {
+    try {
+      const { accountId, status, priority } = req.query;
+      const filters: any = { userId: req.user.id };
+      
+      if (accountId) filters.accountId = accountId as string;
+      if (status) filters.status = status as string;
+
+      const nbas = await storage.getNextBestActions(filters);
+      res.json(nbas);
+    } catch (error) {
+      console.error("Error fetching NBAs:", error);
+      res.status(500).json({ message: "Failed to fetch NBAs" });
+    }
+  });
+
+  app.patch("/api/nbas/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const nba = await storage.updateNextBestAction(req.params.id, req.body);
+      res.json(nba);
+    } catch (error) {
+      console.error("Error updating NBA:", error);
+      res.status(500).json({ message: "Failed to update NBA" });
+    }
+  });
+
+  app.delete("/api/nbas/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteNextBestAction(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting NBA:", error);
+      res.status(500).json({ message: "Failed to delete NBA" });
+    }
+  });
+
+  // Artifacts routes
+  app.get("/api/artifacts", isAuthenticated, async (req: any, res) => {
+    try {
+      const { accountId, type } = req.query;
+      const filters: any = { userId: req.user.id };
+      
+      if (accountId) filters.accountId = accountId as string;
+      if (type) filters.type = type as string;
+
+      const artifacts = await storage.getArtifacts(filters);
+      res.json(artifacts);
+    } catch (error) {
+      console.error("Error fetching artifacts:", error);
+      res.status(500).json({ message: "Failed to fetch artifacts" });
+    }
+  });
+
+  app.post("/api/artifacts", isAuthenticated, async (req: any, res) => {
+    try {
+      const artifactData = insertArtifactSchema.parse({
+        ...req.body,
+        createdBy: req.user.id,
+      });
+      const artifact = await storage.createArtifact(artifactData);
+      res.status(201).json(artifact);
+    } catch (error) {
+      console.error("Error creating artifact:", error);
+      res.status(400).json({ message: "Failed to create artifact" });
+    }
+  });
+
+  app.delete("/api/artifacts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteArtifact(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting artifact:", error);
+      res.status(500).json({ message: "Failed to delete artifact" });
+    }
+  });
+
+  // Dashboard stats route
+  app.get("/api/dashboard/stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const accounts = await storage.getAccountsByUser(req.user.id);
+      const nbas = await storage.getNextBestActions({ userId: req.user.id, status: 'Completed' });
+      const artifacts = await storage.getArtifacts({ userId: req.user.id });
+
+      // Calculate pipeline value (mock calculation)
+      const pipelineValue = accounts.length * 100000; // $100k average per account
+
+      // Calculate conversion rate (mock calculation)  
+      const conversionRate = Math.round((nbas.length / Math.max(accounts.length * 10, 1)) * 100);
+
+      const stats = {
+        activeAccounts: accounts.length,
+        completedNBAs: nbas.length,
+        pipelineValue: `$${(pipelineValue / 1000000).toFixed(1)}M`,
+        conversionRate: `${conversionRate}%`,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
