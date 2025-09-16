@@ -6,7 +6,8 @@ import { searchCompany, getCompanyFromUrl, vectorSearchCorpus } from "./services
 import { processTranscript } from "./services/notes-generation";
 import { generateCoachingGuidance } from "./services/openai";
 import { calculatePipelineHealth, calculateBulkPipelineHealth } from "./services/pipeline-health";
-import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema } from "@shared/schema";
+import { classifyIntent, dispatchAction } from "./services/agent";
+import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema, agentChatRequestSchema } from "@shared/schema";
 import { z } from "zod";
 
 function isAuthenticated(req: any, res: any, next: any) {
@@ -339,6 +340,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Agent chat route
+  app.post("/api/agent/chat", isAuthenticated, async (req: any, res) => {
+    try {
+      const { message, conversationHistory } = agentChatRequestSchema.parse(req.body);
+      
+      // Classify the user's intent
+      const classification = await classifyIntent(message, conversationHistory);
+      
+      // If clarification is needed, return that immediately
+      if (classification.needsConfirmation && classification.clarificationQuestion) {
+        return res.json({
+          message: classification.clarificationQuestion,
+          intent: "clarification_needed",
+          actionResults: [],
+          needsConfirmation: true
+        });
+      }
+      
+      // Dispatch the action based on the classified intent
+      const result = await dispatchAction(
+        classification.intent,
+        classification.params,
+        req.user.id
+      );
+      
+      const response = {
+        message: result.summary,
+        intent: classification.intent,
+        actionResults: result.actionResults || [],
+        needsConfirmation: false,
+        suggestedFollowUps: result.suggestedFollowUps || []
+      };
+      
+      res.json(response);
+    } catch (error: any) {
+      console.error("Error processing agent chat:", error);
+      
+      // Handle validation errors (client errors)
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          message: "Invalid request format. Please check your input and try again.",
+          intent: "general_question",
+          actionResults: [],
+          needsConfirmation: false,
+          suggestedFollowUps: ["Check your message format", "Try rephrasing your request"]
+        });
+      }
+      
+      // Handle other known client errors
+      if (error.message?.includes('Account not found') || 
+          error.message?.includes('not found') ||
+          error.message?.includes('required')) {
+        return res.status(400).json({
+          message: error.message || "Invalid request. Please check your input.",
+          intent: "general_question", 
+          actionResults: [],
+          needsConfirmation: false,
+          suggestedFollowUps: ["Check if the account exists", "Try with different parameters"]
+        });
+      }
+      
+      // Handle server errors
+      res.status(500).json({ 
+        message: "I encountered an error while processing your request. Please try again.",
+        intent: "general_question",
+        actionResults: [],
+        needsConfirmation: false,
+        suggestedFollowUps: ["Try rephrasing your request", "Contact support if the issue persists"]
+      });
     }
   });
 
