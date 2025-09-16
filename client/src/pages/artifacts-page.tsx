@@ -112,30 +112,22 @@ export default function HistoricalNotesPage() {
   const handleEditNote = (note: Artifact) => {
     setEditingNote(note.id);
     setEditedTitle(note.title);
-    setEditedContent(typeof note.content === 'string' ? note.content : JSON.stringify(note.content, null, 2));
+    setEditedContent(formatContent(note.content));
   };
 
   const handleSaveNote = () => {
     if (editingNote) {
-      let processedContent;
-      try {
-        processedContent = JSON.parse(editedContent);
-      } catch {
-        processedContent = editedContent;
-      }
-      
+      // Store as plain text instead of trying to convert back to JSON
       updateNoteMutation.mutate({
         id: editingNote,
         title: editedTitle,
-        content: processedContent
+        content: editedContent
       });
     }
   };
 
   const handleCopyToClipboard = async (content: any, title: string) => {
-    const textContent = typeof content === 'string' 
-      ? content 
-      : JSON.stringify(content, null, 2);
+    const textContent = formatContent(content);
     
     const fullContent = `${title}\n\n${textContent}`;
     
@@ -261,7 +253,19 @@ export default function HistoricalNotesPage() {
     if (typeof content === 'string') {
       return content;
     }
-    return JSON.stringify(content, null, 2);
+    
+    if (typeof content === 'object' && content !== null) {
+      // Convert JSON object to readable text format
+      return Object.entries(content)
+        .map(([key, value]) => {
+          const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+          const formattedValue = Array.isArray(value) ? value.join(', ') : String(value);
+          return `${formattedKey}: ${formattedValue}`;
+        })
+        .join('\n\n');
+    }
+    
+    return String(content);
   };
 
   return (
