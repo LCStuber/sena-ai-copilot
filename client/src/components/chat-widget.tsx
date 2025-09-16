@@ -18,7 +18,8 @@ import {
   FileText,
   Target,
   CheckCircle,
-  Archive
+  Archive,
+  Lightbulb
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { AgentMessage, AgentChatResponse } from "@shared/schema";
@@ -31,6 +32,8 @@ export function ChatWidget({ className }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [showImprovement, setShowImprovement] = useState(false);
+  const [improvementSuggestion, setImprovementSuggestion] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -119,6 +122,23 @@ export function ChatWidget({ className }: ChatWidgetProps) {
     }
   };
 
+  const handleImprovementSubmit = () => {
+    if (!improvementSuggestion.trim()) return;
+    
+    toast({
+      title: "Thank you for your feedback!",
+      description: "Your suggestion will help us improve SENA.",
+    });
+    
+    setImprovementSuggestion("");
+    setShowImprovement(false);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setShowImprovement(false);
+  };
+
   const getActionIcon = (type: string) => {
     switch (type) {
       case "company_research":
@@ -187,8 +207,72 @@ export function ChatWidget({ className }: ChatWidgetProps) {
                   <p className="text-xs text-muted-foreground">Your AI Sales Assistant</p>
                 </div>
               </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={() => setShowImprovement(!showImprovement)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  data-testid="button-improvement-toggle"
+                >
+                  <Lightbulb className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={handleClose}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  data-testid="button-close-chat"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
+
+          {/* Improvement Prompt Section */}
+          {showImprovement && (
+            <div className="border-b bg-muted/50 p-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4 text-yellow-600" />
+                  <h4 className="text-sm font-medium">Help us improve SENA</h4>
+                </div>
+                <Input
+                  value={improvementSuggestion}
+                  onChange={(e) => setImprovementSuggestion(e.target.value)}
+                  placeholder="Share your ideas, feedback, or feature requests..."
+                  className="text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleImprovementSubmit();
+                    }
+                  }}
+                  data-testid="input-improvement-suggestion"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    onClick={() => setShowImprovement(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleImprovementSubmit}
+                    disabled={!improvementSuggestion.trim()}
+                    size="sm"
+                    className="text-xs"
+                    data-testid="button-submit-improvement"
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Messages Area */}
