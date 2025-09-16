@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, FileText, Lightbulb, Save, Edit, CheckSquare } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { Loader2, FileText, Lightbulb, Save, Edit, CheckSquare, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Account {
@@ -49,6 +51,8 @@ export default function PlaybookNotesPage() {
   const [transcript, setTranscript] = useState("");
   const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [accountMode, setAccountMode] = useState<"select" | "create">("select");
+  const [newCompanyName, setNewCompanyName] = useState("");
   const [lob, setLob] = useState<"LTS" | "LSS" | "">("");
   const [userTimeZone] = useState("America/New_York");
   const [processResults, setProcessResults] = useState<ProcessTranscriptResult | null>(null);
@@ -58,6 +62,30 @@ export default function PlaybookNotesPage() {
 
   const { data: accounts = [] } = useQuery<Account[]>({
     queryKey: ["/api/accounts"],
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await apiRequest("POST", "/api/accounts", { name });
+      return response.json();
+    },
+    onSuccess: (newAccount: Account) => {
+      setSelectedAccountId(newAccount.id);
+      setAccountMode("select");
+      setNewCompanyName("");
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      toast({
+        title: "Company Created",
+        description: `${newAccount.name} has been added to your accounts.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Create Company",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const processTranscriptMutation = useMutation({
@@ -124,7 +152,7 @@ export default function PlaybookNotesPage() {
     );
   };
 
-  const handleProcessTranscript = () => {
+  const handleProcessTranscript = async () => {
     if (!transcript.trim()) {
       toast({
         title: "Missing Transcript",
@@ -143,7 +171,24 @@ export default function PlaybookNotesPage() {
       return;
     }
 
-    if (!selectedAccountId) {
+    // Handle account selection or creation
+    let accountId = selectedAccountId;
+    if (accountMode === "create") {
+      if (!newCompanyName.trim()) {
+        toast({
+          title: "Missing Company Name",
+          description: "Please enter a company name to create a new account.",
+          variant: "destructive",
+        });
+        return;
+      }
+      try {
+        const newAccount = await createAccountMutation.mutateAsync(newCompanyName.trim());
+        accountId = newAccount.id;
+      } catch (error) {
+        return; // Error is handled by the mutation
+      }
+    } else if (!accountId) {
       toast({
         title: "No Account Selected",
         description: "Please select an account to associate with this transcript.",
@@ -162,7 +207,7 @@ export default function PlaybookNotesPage() {
     }
 
     processTranscriptMutation.mutate({
-      accountId: selectedAccountId,
+      accountId,
       transcriptContent: transcript,
       frameworks: selectedFrameworks,
       lob,
@@ -238,20 +283,55 @@ export default function PlaybookNotesPage() {
                   <div className="space-y-4">
                     {/* Account and LOB Selection */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="accountSelect">Account</Label>
-                        <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                          <SelectTrigger data-testid="select-account">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {accounts.map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-4">
+                        <Label>Account</Label>
+                        <RadioGroup 
+                          value={accountMode} 
+                          onValueChange={(value) => {
+                            setAccountMode(value as "select" | "create");
+                            setSelectedAccountId("");
+                            setNewCompanyName("");
+                          }}
+                          className="flex flex-row space-x-6"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="select" id="select-existing" data-testid="radio-select-existing" />
+                            <Label htmlFor="select-existing" className="text-sm font-normal cursor-pointer">
+                              Select existing
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="create" id="create-new" data-testid="radio-create-new" />
+                            <Label htmlFor="create-new" className="text-sm font-normal cursor-pointer">
+                              Add new company
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                        
+                        {accountMode === "select" ? (
+                          <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                            <SelectTrigger data-testid="select-account">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex space-x-2">
+                            <Input
+                              placeholder="Enter company name"
+                              value={newCompanyName}
+                              onChange={(e) => setNewCompanyName(e.target.value)}
+                              className="flex-1"
+                              data-testid="input-company-name"
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="lobSelect">Line of Business</Label>
@@ -284,13 +364,13 @@ export default function PlaybookNotesPage() {
                       </div>
                       <Button 
                         onClick={handleProcessTranscript}
-                        disabled={processTranscriptMutation.isPending}
+                        disabled={processTranscriptMutation.isPending || createAccountMutation.isPending}
                         data-testid="button-process-transcript"
                       >
-                        {processTranscriptMutation.isPending ? (
+                        {(processTranscriptMutation.isPending || createAccountMutation.isPending) ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Processing...
+                            {createAccountMutation.isPending ? "Creating Company..." : "Processing..."}
                           </>
                         ) : (
                           "Process Transcript"
@@ -336,13 +416,13 @@ export default function PlaybookNotesPage() {
                   <Button 
                     className="w-full mt-6" 
                     onClick={handleProcessTranscript}
-                    disabled={processTranscriptMutation.isPending || selectedFrameworks.length === 0}
+                    disabled={processTranscriptMutation.isPending || createAccountMutation.isPending || selectedFrameworks.length === 0}
                     data-testid="button-generate-notes"
                   >
-                    {processTranscriptMutation.isPending ? (
+                    {(processTranscriptMutation.isPending || createAccountMutation.isPending) ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
+                        {createAccountMutation.isPending ? "Creating Company..." : "Generating..."}
                       </>
                     ) : (
                       "Generate Notes"
