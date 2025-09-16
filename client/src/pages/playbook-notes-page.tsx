@@ -67,7 +67,15 @@ export default function PlaybookNotesPage() {
 
   const createAccountMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await apiRequest("POST", "/api/accounts", { name });
+      if (!lob) {
+        throw new Error("Please select a Line of Business");
+      }
+      const response = await apiRequest("POST", "/api/accounts", { 
+        name,
+        lob,
+        stage: "Discovery",
+        priority: "Medium"
+      });
       return response.json();
     },
     onSuccess: (newAccount: Account) => {

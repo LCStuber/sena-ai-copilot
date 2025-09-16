@@ -2,12 +2,24 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { searchCompany, getCompanyFromUrl, vectorSearchCorpus } from "./services/company-research";
+import {
+  searchCompany,
+  getCompanyFromUrl,
+  vectorSearchCorpus,
+} from "./services/company-research";
 import { processTranscript } from "./services/notes-generation";
 import { generateCoachingGuidance } from "./services/openai";
-import { calculatePipelineHealth, calculateBulkPipelineHealth } from "./services/pipeline-health";
+import {
+  calculatePipelineHealth,
+  calculateBulkPipelineHealth,
+} from "./services/pipeline-health";
 import { classifyIntent, dispatchAction } from "./services/agent";
-import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema, agentChatRequestSchema } from "@shared/schema";
+import {
+  insertAccountSchema,
+  insertCompanyResearchSchema,
+  insertArtifactSchema,
+  agentChatRequestSchema,
+} from "@shared/schema";
 import { z } from "zod";
 
 function isAuthenticated(req: any, res: any, next: any) {
@@ -18,7 +30,7 @@ function isAuthenticated(req: any, res: any, next: any) {
     email: "demo@sena.ai",
     firstName: "Demo",
     lastName: "User",
-    role: "sdr"
+    role: "sdr",
   };
   return next();
 }
@@ -49,19 +61,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         assignedTo: req.user.id,
       });
-      
+
       // Check for duplicate account based on name and website
       const existingAccount = await storage.findAccountByNameOrWebsite(
-        accountData.name, 
-        accountData.website
+        accountData.name,
       );
-      
+
       if (existingAccount) {
         // Return the existing account instead of creating a duplicate
-        console.log(`Duplicate account detected: ${accountData.name}. Using existing account: ${existingAccount.id}`);
+        console.log(
+          `Duplicate account detected: ${accountData.name}. Using existing account: ${existingAccount.id}`,
+        );
         return res.status(200).json(existingAccount);
       }
-      
+
       // No duplicate found, create new account
       const account = await storage.createAccount(accountData);
       res.status(201).json(account);
@@ -88,13 +101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/research/company", isAuthenticated, async (req: any, res) => {
     try {
       const { query, lob, accountId } = req.body;
-      
+
       if (!query || !lob) {
         return res.status(400).json({ message: "Query and LOB are required" });
       }
 
       const results = await searchCompany(query, lob);
-      
+
       // Save research if accountId provided and is not empty
       if (accountId && accountId.trim() !== "") {
         await storage.createCompanyResearch({
@@ -116,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/research/url", isAuthenticated, async (req: any, res) => {
     try {
       const { url } = req.body;
-      
+
       if (!url) {
         return res.status(400).json({ message: "URL is required" });
       }
@@ -129,83 +142,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/research/vector-search", isAuthenticated, async (req: any, res) => {
-    try {
-      const { company, k = 5 } = req.body;
-      
-      if (!company) {
-        return res.status(400).json({ message: "Company name is required" });
-      }
+  app.post(
+    "/api/research/vector-search",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { company, k = 5 } = req.body;
 
-      const results = await vectorSearchCorpus(company, k);
-      res.json(results);
-    } catch (error) {
-      console.error("Error in vector search:", error);
-      res.status(500).json({ message: "Failed to perform vector search" });
-    }
-  });
+        if (!company) {
+          return res.status(400).json({ message: "Company name is required" });
+        }
+
+        const results = await vectorSearchCorpus(company, k);
+        res.json(results);
+      } catch (error) {
+        console.error("Error in vector search:", error);
+        res.status(500).json({ message: "Failed to perform vector search" });
+      }
+    },
+  );
 
   // Transcript and Notes routes
-  app.post("/api/transcripts/process", isAuthenticated, async (req: any, res) => {
-    try {
-      const { accountId, transcriptContent, frameworks, lob, userTimeZone, accountTimeZone } = req.body;
-      
-      if (!accountId || !transcriptContent || !frameworks || !lob) {
-        return res.status(400).json({ message: "Missing required fields" });
+  app.post(
+    "/api/transcripts/process",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const {
+          accountId,
+          transcriptContent,
+          frameworks,
+          lob,
+          userTimeZone,
+          accountTimeZone,
+        } = req.body;
+
+        if (!accountId || !transcriptContent || !frameworks || !lob) {
+          return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const result = await processTranscript({
+          accountId,
+          transcriptContent,
+          frameworks,
+          lob,
+          userId: req.user.id,
+          userTimeZone: userTimeZone || "UTC",
+          accountTimeZone,
+        });
+
+        res.json(result);
+      } catch (error) {
+        console.error("Error processing transcript:", error);
+        res.status(500).json({ message: "Failed to process transcript" });
       }
+    },
+  );
 
-      const result = await processTranscript({
-        accountId,
-        transcriptContent,
-        frameworks,
-        lob,
-        userId: req.user.id,
-        userTimeZone: userTimeZone || 'UTC',
-        accountTimeZone,
-      });
-
-      res.json(result);
-    } catch (error) {
-      console.error("Error processing transcript:", error);
-      res.status(500).json({ message: "Failed to process transcript" });
-    }
-  });
-
-  app.get("/api/accounts/:accountId/notes", isAuthenticated, async (req: any, res) => {
-    try {
-      const notes = await storage.getFrameworkNotesByAccount(req.params.accountId);
-      res.json(notes);
-    } catch (error) {
-      console.error("Error fetching notes:", error);
-      res.status(500).json({ message: "Failed to fetch notes" });
-    }
-  });
-
-  app.patch("/api/framework-notes/:id", isAuthenticated, async (req: any, res) => {
-    try {
-      const { content } = req.body;
-      
-      if (!content) {
-        return res.status(400).json({ message: "Content is required" });
+  app.get(
+    "/api/accounts/:accountId/notes",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const notes = await storage.getFrameworkNotesByAccount(
+          req.params.accountId,
+        );
+        res.json(notes);
+      } catch (error) {
+        console.error("Error fetching notes:", error);
+        res.status(500).json({ message: "Failed to fetch notes" });
       }
+    },
+  );
 
-      const updatedNotes = await storage.updateFrameworkNotes(req.params.id, {
-        content,
-        updatedAt: new Date()
-      });
-      
-      res.json(updatedNotes);
-    } catch (error) {
-      console.error("Error updating framework notes:", error);
-      res.status(500).json({ message: "Failed to update framework notes" });
-    }
-  });
+  app.patch(
+    "/api/framework-notes/:id",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { content } = req.body;
+
+        if (!content) {
+          return res.status(400).json({ message: "Content is required" });
+        }
+
+        const updatedNotes = await storage.updateFrameworkNotes(req.params.id, {
+          content,
+          updatedAt: new Date(),
+        });
+
+        res.json(updatedNotes);
+      } catch (error) {
+        console.error("Error updating framework notes:", error);
+        res.status(500).json({ message: "Failed to update framework notes" });
+      }
+    },
+  );
 
   // Coaching routes
   app.post("/api/coaching", isAuthenticated, async (req: any, res) => {
     try {
       const { transcript, frameworks, frameworkNotes, lob } = req.body;
-      
+
       if (!transcript || !frameworks || !lob) {
         return res.status(400).json({ message: "Missing required fields" });
       }
@@ -229,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { accountId, status, priority } = req.query;
       const filters: any = { userId: req.user.id };
-      
+
       if (accountId) filters.accountId = accountId as string;
       if (status) filters.status = status as string;
       if (priority) filters.priority = priority as string;
@@ -267,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { accountId, type } = req.query;
       const filters: any = { userId: req.user.id };
-      
+
       if (accountId) filters.accountId = accountId as string;
       if (type) filters.type = type as string;
 
@@ -307,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pipeline-health", isAuthenticated, async (req: any, res) => {
     try {
       const { accountId } = req.query;
-      
+
       if (!accountId) {
         return res.status(400).json({ message: "accountId is required" });
       }
@@ -320,28 +358,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/pipeline-health/bulk", isAuthenticated, async (req: any, res) => {
-    try {
-      const { accountIds } = req.query;
-      
-      if (!accountIds) {
-        return res.status(400).json({ message: "accountIds is required" });
-      }
+  app.get(
+    "/api/pipeline-health/bulk",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { accountIds } = req.query;
 
-      const accountIdArray = Array.isArray(accountIds) ? accountIds : [accountIds];
-      const healthScores = await calculateBulkPipelineHealth(accountIdArray);
-      res.json(healthScores);
-    } catch (error) {
-      console.error("Error calculating bulk pipeline health:", error);
-      res.status(500).json({ message: "Failed to calculate bulk pipeline health" });
-    }
-  });
+        if (!accountIds) {
+          return res.status(400).json({ message: "accountIds is required" });
+        }
+
+        const accountIdArray = Array.isArray(accountIds)
+          ? accountIds
+          : [accountIds];
+        const healthScores = await calculateBulkPipelineHealth(accountIdArray);
+        res.json(healthScores);
+      } catch (error) {
+        console.error("Error calculating bulk pipeline health:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to calculate bulk pipeline health" });
+      }
+    },
+  );
 
   // Dashboard stats route
   app.get("/api/dashboard/stats", isAuthenticated, async (req: any, res) => {
     try {
       const accounts = await storage.getAccountsByUser(req.user.id);
-      const nbas = await storage.getNextBestActions({ userId: req.user.id, status: 'Completed' });
+      const nbas = await storage.getNextBestActions({
+        userId: req.user.id,
+        status: "Completed",
+      });
       const artifacts = await storage.getArtifacts({ userId: req.user.id });
 
       // Calculate pipeline value (mock calculation)
@@ -350,9 +399,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate average pipeline health across all accounts
       let pipelineHealthAvg = 0;
       if (accounts.length > 0) {
-        const accountIds = accounts.map(account => account.id);
+        const accountIds = accounts.map((account) => account.id);
         const healthScores = await calculateBulkPipelineHealth(accountIds);
-        const totalScore = healthScores.reduce((sum, score) => sum + score.score, 0);
+        const totalScore = healthScores.reduce(
+          (sum, score) => sum + score.score,
+          0,
+        );
         pipelineHealthAvg = Math.round(totalScore / healthScores.length);
       }
 
@@ -373,71 +425,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Agent chat route
   app.post("/api/agent/chat", isAuthenticated, async (req: any, res) => {
     try {
-      const { message, conversationHistory } = agentChatRequestSchema.parse(req.body);
-      
+      const { message, conversationHistory } = agentChatRequestSchema.parse(
+        req.body,
+      );
+
       // Classify the user's intent
       const classification = await classifyIntent(message, conversationHistory);
-      
+
       // If clarification is needed, return that immediately
-      if (classification.needsConfirmation && classification.clarificationQuestion) {
+      if (
+        classification.needsConfirmation &&
+        classification.clarificationQuestion
+      ) {
         return res.json({
           message: classification.clarificationQuestion,
           intent: "clarification_needed",
           actionResults: [],
-          needsConfirmation: true
+          needsConfirmation: true,
         });
       }
-      
+
       // Dispatch the action based on the classified intent
       const result = await dispatchAction(
         classification.intent,
         classification.params,
-        req.user.id
+        req.user.id,
       );
-      
+
       const response = {
         message: result.summary,
         intent: classification.intent,
         actionResults: result.actionResults || [],
         needsConfirmation: false,
-        suggestedFollowUps: result.suggestedFollowUps || []
+        suggestedFollowUps: result.suggestedFollowUps || [],
       };
-      
+
       res.json(response);
     } catch (error: any) {
       console.error("Error processing agent chat:", error);
-      
+
       // Handle validation errors (client errors)
-      if (error.name === 'ZodError') {
+      if (error.name === "ZodError") {
         return res.status(400).json({
-          message: "Invalid request format. Please check your input and try again.",
+          message:
+            "Invalid request format. Please check your input and try again.",
           intent: "general_question",
           actionResults: [],
           needsConfirmation: false,
-          suggestedFollowUps: ["Check your message format", "Try rephrasing your request"]
+          suggestedFollowUps: [
+            "Check your message format",
+            "Try rephrasing your request",
+          ],
         });
       }
-      
+
       // Handle other known client errors
-      if (error.message?.includes('Account not found') || 
-          error.message?.includes('not found') ||
-          error.message?.includes('required')) {
+      if (
+        error.message?.includes("Account not found") ||
+        error.message?.includes("not found") ||
+        error.message?.includes("required")
+      ) {
         return res.status(400).json({
           message: error.message || "Invalid request. Please check your input.",
-          intent: "general_question", 
+          intent: "general_question",
           actionResults: [],
           needsConfirmation: false,
-          suggestedFollowUps: ["Check if the account exists", "Try with different parameters"]
+          suggestedFollowUps: [
+            "Check if the account exists",
+            "Try with different parameters",
+          ],
         });
       }
-      
+
       // Handle server errors
-      res.status(500).json({ 
-        message: "I encountered an error while processing your request. Please try again.",
+      res.status(500).json({
+        message:
+          "I encountered an error while processing your request. Please try again.",
         intent: "general_question",
         actionResults: [],
         needsConfirmation: false,
-        suggestedFollowUps: ["Try rephrasing your request", "Contact support if the issue persists"]
+        suggestedFollowUps: [
+          "Try rephrasing your request",
+          "Contact support if the issue persists",
+        ],
       });
     }
   });

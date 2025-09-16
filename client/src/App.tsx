@@ -22,6 +22,7 @@ function Router() {
       <ProtectedRoute path="/dashboard" component={() => <ResponsiveLayout><DashboardPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/research" component={() => <ResponsiveLayout><CompanyResearchPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/accounts" component={() => <ResponsiveLayout><ActiveAccountsPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/playbook-notes" component={() => <ResponsiveLayout><PlaybookNotesPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/playbook" component={() => <ResponsiveLayout><PlaybookNotesPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/nbas" component={() => <ResponsiveLayout><NbasPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/artifacts" component={() => <ResponsiveLayout><ArtifactsPage /></ResponsiveLayout>} />

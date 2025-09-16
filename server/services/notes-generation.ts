@@ -66,6 +66,16 @@ export async function processTranscript(request: ProcessTranscriptRequest): Prom
           createdBy: userId,
         });
 
+        // Also save framework notes as artifacts for Historical Notes access
+        await storage.createArtifact({
+          accountId,
+          type: framework as any,
+          title: `${framework} Notes`,
+          content: notesContent,
+          summary: `${framework} framework notes generated from meeting transcript`,
+          createdBy: userId,
+        });
+
         frameworkNotesResults.push({
           id: notes.id,
           framework: notes.framework,
