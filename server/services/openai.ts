@@ -235,7 +235,7 @@ ${companyContext ? `Company Context: ${companyContext}` : ''}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5mini", // newest OpenAI model released August 7, 2025
       messages: [
         { role: "system", content: systemMessage + "\n\nRespond with valid JSON only." },
         { role: "user", content: `${prompt}\n\nTranscript:\n${transcript}` }
@@ -310,7 +310,7 @@ Example format:
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5mini", // newest OpenAI model released August 7, 2025
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Generate NBAs based on this context:\n\n${JSON.stringify(contextData, null, 2)}` }
@@ -355,7 +355,7 @@ Provide specific examples from the transcript with timestamps when possible. Be 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5mini", // newest OpenAI model released August 7, 2025
       messages: [
         { role: "system", content: systemMessage },
         { 

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import TimeZoneSelector from "@/components/time-zone-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +43,6 @@ interface NextBestAction {
 
 export default function DashboardPage() {
   const [userTimeZone, setUserTimeZone] = useState("America/New_York");
-  const [accountTimeZone, setAccountTimeZone] = useState<string | undefined>();
   const [priorityFilter, setPriorityFilter] = useState("all");
 
   // Auto-detect user timezone
@@ -131,13 +129,6 @@ export default function DashboardPage() {
             <p className="mt-2 text-sm md:text-base text-muted-foreground">Your sales enablement command center</p>
           </div>
 
-          {/* Time Zone Selector */}
-          <TimeZoneSelector
-            userTimeZone={userTimeZone}
-            accountTimeZone={accountTimeZone}
-            onUserTimeZoneChange={setUserTimeZone}
-            onAccountTimeZoneChange={setAccountTimeZone}
-          />
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">

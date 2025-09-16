@@ -93,7 +93,7 @@ Respond with JSON in this exact format:
   try {
     console.log(`Starting company research for: ${query} (LOB: ${lob})`);
     const response = await openai.chat.completions.create({
-      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5mini", // newest OpenAI model released August 7, 2025
       messages: [
         { role: "system", content: systemMessage },
         { 
@@ -197,7 +197,7 @@ Respond with JSON in this exact format:
 
     console.log(`Starting vector search for: ${company}`);
     const response = await openai.chat.completions.create({
-      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
+      model: "gpt-5mini", // newest OpenAI model released August 7, 2025
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Company: ${company}\nNumber of passages: ${k}` }

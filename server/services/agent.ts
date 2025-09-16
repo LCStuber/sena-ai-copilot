@@ -49,7 +49,7 @@ export async function classifyIntent(
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `${message}${conversationContext}` }
@@ -398,7 +398,7 @@ async function handleGeneralQuestion(params: GeneralQuestionParams) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: validatedParams.question }
