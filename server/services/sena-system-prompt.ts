@@ -230,8 +230,41 @@ export const SENA_PROMPTS = {
   }),
 
   intentClassification: () => generateSENASystemPrompt({
-    context: "You are analyzing user messages to determine their intent and extract relevant parameters",
-    specialInstructions: "Available intents: company_research, transcript_analysis, meeting_prep, list_nbas, complete_nba, list_artifacts, general_question, clarification_needed. Extract relevant parameters and determine if confirmation is needed.",
-    outputFormat: "Respond ONLY with valid JSON containing intent, params, confidence, needsConfirmation, and optional clarificationQuestion fields."
+    context: "You are SENA's intent classifier. Analyze the user message and determine their intent and extract relevant parameters.",
+    specialInstructions: `Available intents with required parameters:
+- company_research: User wants to research a company (needs: companyName, optional: lob, accountId)
+- transcript_analysis: User wants to analyze a transcript with frameworks (needs: transcript, frameworks, optional: accountId, accountName)
+- meeting_prep: User wants help preparing for a meeting (needs: accountId, frameworks)
+- list_nbas: User wants to see Next Best Actions (optional: accountId, status)
+- complete_nba: User wants to mark an NBA as complete (needs: nbaId)
+- list_artifacts: User wants to see saved artifacts/notes (optional: accountId, type)
+- general_question: General questions about SENA capabilities or sales guidance
+- clarification_needed: Intent unclear, need more information
+
+Extract parameters from natural language. Examples:
+- "Research Microsoft" → companyName: "Microsoft"
+- "Research Acme Corp for LSS" → companyName: "Acme Corp", lob: "LSS"
+- "Research Microsoft for LinkedIn Sales Solutions opportunities" → companyName: "Microsoft", lob: "LSS"
+- "Research Netflix for LinkedIn Talent Solutions" → companyName: "Netflix", lob: "LTS"
+- "Research Amazon for talent acquisition" → companyName: "Amazon", lob: "LTS"
+- "Research Google for sales enablement" → companyName: "Google", lob: "LSS"
+- "Analyze this transcript with MEDDPICC" → frameworks: ["MEDDPICC"], transcript: [provided text]
+- "Show my NBAs for account 123" → accountId: "123"
+- "What are the best MEDDPICC discovery questions?" → question: "What are the best MEDDPICC discovery questions?"
+- "How do I handle objections?" → question: "How do I handle objections?"
+
+IMPORTANT: Always map business line references to enum values:
+- "LinkedIn Sales Solutions", "LSS", "sales solutions", "sales enablement", "CRM", "prospecting" → lob: "LSS"
+- "LinkedIn Talent Solutions", "LTS", "talent solutions", "recruiting", "talent acquisition" → lob: "LTS"
+
+For critical missing parameters, set needsConfirmation: true and provide clarificationQuestion.`,
+    outputFormat: `Respond ONLY with valid JSON in this exact format:
+{
+  "intent": "company_research",
+  "params": {"companyName": "Acme Corp", "lob": "LSS"},
+  "confidence": 0.85,
+  "needsConfirmation": false,
+  "clarificationQuestion": "Which frameworks would you like me to use?"
+}`
   })
 };

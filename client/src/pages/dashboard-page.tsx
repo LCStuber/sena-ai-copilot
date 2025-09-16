@@ -17,7 +17,6 @@ import {
   Filter
 } from "lucide-react";
 import { formatDueDate } from "@/lib/time-utils";
-import { ChatWidget } from "@/components/chat-widget";
 
 interface DashboardStats {
   activeAccounts: number;
@@ -323,9 +322,6 @@ export default function DashboardPage() {
               </Card>
             </div>
           </div>
-
-          {/* Chat Widget */}
-          <ChatWidget />
         </div>
   );
 }

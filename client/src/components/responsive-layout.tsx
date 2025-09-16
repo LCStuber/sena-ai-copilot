@@ -1,5 +1,6 @@
 import Sidebar from "./sidebar";
 import MobileHeader from "./mobile-header";
+import { ChatWidget } from "./chat-widget";
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -24,6 +25,9 @@ export default function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* ChatWidget - globally available on all authenticated pages */}
+      <ChatWidget />
     </div>
   );
 }
