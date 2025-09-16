@@ -22,7 +22,7 @@ interface DashboardStats {
   activeAccounts: number;
   completedNBAs: number;
   pipelineValue: string;
-  conversionRate: string;
+  pipelineHealth: string;
 }
 
 interface Account {
@@ -101,8 +101,8 @@ export default function DashboardPage() {
       href: "/research",
     },
     {
-      title: "Conversion Rate",
-      value: stats?.conversionRate || "0%",
+      title: "Pipeline Health",
+      value: stats?.pipelineHealth || "0%",
       icon: Target,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
