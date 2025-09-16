@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { SENA_PROMPTS } from './sena-system-prompt';
 
 // Using gpt-4 for stable and reliable AI generation
 const openai = new OpenAI({ 
@@ -104,15 +105,9 @@ export async function generateFrameworkNotes(input: FrameworkNotesInput): Promis
     throw new Error(`Unsupported framework: ${framework}`);
   }
 
-  const systemMessage = `You are SENA — Sales Enablement & Next-best Actions (AI), an expert sales development copilot for LinkedIn ${lob} sellers. 
+  const systemMessage = SENA_PROMPTS.transcriptAnalysis(lob) + `
 
-Generate framework-specific notes from the sales call transcript. Use ONLY information explicitly mentioned in the transcript. Never invent or assume details.
-
-${companyContext ? `Company Context: ${companyContext}` : ''}
-
-IMPORTANT: Respond with a valid JSON object containing the extracted information exactly as requested. Use "Unknown (not mentioned)" for any field where information is not available in the transcript. 
-
-Your response must be valid JSON that can be parsed with JSON.parse().`;
+${companyContext ? `Company Context: ${companyContext}` : ''}`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -142,7 +137,7 @@ export async function generateNextBestActions(input: {
 }): Promise<any[]> {
   const { transcript, frameworkNotes, companyResearch, accountName, userTimeZone, lob } = input;
 
-  const systemMessage = `You are SENA — Sales Enablement & Next-best Actions (AI). Generate 3-7 prioritized Next Best Actions (NBAs) for an SDR working with ${accountName}.
+  const systemMessage = SENA_PROMPTS.nextBestActions(lob) + ` Generate 3-7 prioritized Next Best Actions (NBAs) for an SDR working with ${accountName}.
 
 NBAs should be actionable items that move the deal forward: clarify pain, multithread, confirm economic buyer, secure next meeting, log CRM, tailored outreach.
 
@@ -206,9 +201,9 @@ export async function generateCoachingGuidance(input: {
 }): Promise<string> {
   const { transcript, frameworks, frameworkNotes, lob } = input;
 
-  const systemMessage = `You are SENA — Sales Enablement & Next-best Actions (AI), providing coaching guidance for ${lob} SDRs.
+  const systemMessage = SENA_PROMPTS.general() + `
 
-Analyze the sales call transcript and framework notes to provide constructive, actionable coaching. Focus on:
+Analyze the sales call transcript and framework notes to provide constructive, actionable coaching for ${lob} SDRs. Focus on:
 - Sales technique improvements
 - Framework application
 - Discovery question quality

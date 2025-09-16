@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { SENA_PROMPTS } from './sena-system-prompt';
 
 // Using gpt-4 for company research - stable and reliable
 const openai = new OpenAI({ 
@@ -23,7 +24,7 @@ export async function searchCompany(query: string, lob: "LTS" | "LSS"): Promise<
   // In a production environment, this would integrate with real data sources
   // For now, we'll use OpenAI to generate realistic company research based on the query
   
-  const systemMessage = `You are SENA — Sales Enablement & Next-best Actions (AI), providing company research for ${lob} sales development.
+  const systemMessage = SENA_PROMPTS.companyResearch(lob) + `
 
 Research the company "${query}" and provide:
 1. Brief overview (what they do, ICP hints)
@@ -33,20 +34,7 @@ Research the company "${query}" and provide:
 5. Relevant technology stack
 6. Credible source citations
 
-Focus on information relevant to ${lob === "LTS" ? "LinkedIn Talent Solutions (recruiting, talent acquisition)" : "LinkedIn Sales Solutions (sales enablement, CRM, prospecting)"}.
-
-Provide 3-6 bullets max for the main content. Include realistic source URLs that would typically contain this information.
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "overview": "brief company description",
-  "pressures": ["pressure1", "pressure2"],
-  "objectives": ["objective1", "objective2"],
-  "challenges": ["challenge1", "challenge2"],
-  "signals": ["signal1", "signal2"],
-  "techStack": ["tech1", "tech2"],
-  "sources": [{"title": "Source Name", "url": "https://example.com", "citation": "[1]"}]
-}`;
+Provide 3-6 bullets max for the main content. Include realistic source URLs that would typically contain this information.`;
 
   try {
     console.log(`Starting company research for: ${query} (LOB: ${lob})`);
@@ -141,7 +129,9 @@ export async function vectorSearchCorpus(company: string, k: number = 5): Promis
   // For now, we'll simulate relevant passages about the company
   
   try {
-    const systemMessage = `Generate ${k} relevant information passages about ${company} that would typically be found in a sales intelligence database. 
+    const systemMessage = SENA_PROMPTS.companyResearch("LSS") + `
+
+Generate ${k} relevant information passages about ${company} that would typically be found in a sales intelligence database. 
 
 Each passage should be 2-3 sentences and cover different aspects like:
 - Business model and operations
@@ -151,13 +141,7 @@ Each passage should be 2-3 sentences and cover different aspects like:
 - Growth and expansion
 - Leadership and culture
 
-Also provide realistic source citations.
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "passages": ["passage1", "passage2"],
-  "sources": [{"title": "Source Name", "url": "https://example.com", "citation": "[1]"}]
-}`;
+Also provide realistic source citations.`;
 
     console.log(`Starting vector search for: ${company}`);
     const response = await openai.chat.completions.create({

@@ -22,6 +22,7 @@ import { searchCompany } from './company-research';
 import { processTranscript } from './notes-generation';
 import { generateFrameworkNotes, generateCoachingGuidance } from './openai';
 import { storage } from '../storage';
+import { SENA_PROMPTS } from './sena-system-prompt';
 
 // Using gpt-4 for agent conversations
 const openai = new OpenAI({ 
@@ -40,28 +41,7 @@ export async function classifyIntent(
   message: string, 
   conversationHistory: any[] = []
 ): Promise<IntentClassification> {
-  const systemMessage = `You are SENA's intent classifier. Analyze the user message and determine their intent and extract relevant parameters.
-
-Available intents:
-- company_research: User wants to research a company (needs: companyName, optional: lob, accountId)
-- transcript_analysis: User wants to analyze a transcript with frameworks (needs: transcript, frameworks, optional: accountId, accountName)
-- meeting_prep: User wants help preparing for a meeting (needs: accountId, frameworks)
-- list_nbas: User wants to see Next Best Actions (optional: accountId, status)
-- complete_nba: User wants to mark an NBA as complete (needs: nbaId)
-- list_artifacts: User wants to see saved artifacts/notes (optional: accountId, type)
-- general_question: General questions about SENA capabilities or sales guidance
-- clarification_needed: Intent unclear, need more information
-
-For each intent, extract the relevant parameters. If critical parameters are missing, set needsConfirmation: true and provide a clarificationQuestion.
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "intent": "company_research",
-  "params": {"companyName": "Acme Corp", "lob": "LSS"},
-  "confidence": 0.85,
-  "needsConfirmation": false,
-  "clarificationQuestion": "Which frameworks would you like me to use?"
-}`;
+  const systemMessage = SENA_PROMPTS.intentClassification();
 
   const conversationContext = conversationHistory.length > 0 
     ? `\n\nConversation history:\n${conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n')}`
@@ -414,17 +394,7 @@ async function handleListArtifacts(params: ListArtifactsParams, userId: string) 
 async function handleGeneralQuestion(params: GeneralQuestionParams) {
   const validatedParams = generalQuestionParamsSchema.parse(params);
   
-  const systemMessage = `You are SENA — Sales Enablement & Next-best Actions (AI), a comprehensive sales development copilot for LinkedIn sellers.
-
-You can help with:
-- Company research and buyer insights
-- Meeting transcript analysis using sales frameworks (MEDDPICC, BANT, VEF, Qual-LTS, Qual-LSS, LicenseDemandPlan)
-- Next Best Action generation and prioritization
-- Meeting preparation and talking points
-- Sales coaching and guidance
-- Artifact management and export
-
-Provide helpful, actionable guidance related to sales development and LinkedIn selling. Keep responses concise and practical.`;
+  const systemMessage = SENA_PROMPTS.general();
 
   try {
     const response = await openai.chat.completions.create({
