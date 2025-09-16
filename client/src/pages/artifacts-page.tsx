@@ -184,7 +184,7 @@ export default function ArtifactsPage() {
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       {artifactTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
@@ -201,7 +201,7 @@ export default function ArtifactsPage() {
                       <SelectValue placeholder="All Accounts" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Accounts</SelectItem>
+                      <SelectItem value="all">All Accounts</SelectItem>
                       {accounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.name}

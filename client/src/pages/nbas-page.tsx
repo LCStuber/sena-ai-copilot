@@ -179,7 +179,7 @@ export default function NbasPage() {
                       <SelectValue placeholder="All Accounts" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Accounts</SelectItem>
+                      <SelectItem value="all">All Accounts</SelectItem>
                       {accounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.name}
@@ -196,7 +196,7 @@ export default function NbasPage() {
                       <SelectValue placeholder="All Priorities" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Priorities</SelectItem>
+                      <SelectItem value="all">All Priorities</SelectItem>
                       <SelectItem value="High">High</SelectItem>
                       <SelectItem value="Medium">Medium</SelectItem>
                       <SelectItem value="Low">Low</SelectItem>
@@ -211,7 +211,7 @@ export default function NbasPage() {
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Statuses</SelectItem>
+                      <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="Open">Open</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>

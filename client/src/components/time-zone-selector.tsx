@@ -81,7 +81,7 @@ export default function TimeZoneSelector({
               <SelectValue placeholder="Account timezone" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Same as user</SelectItem>
+              <SelectItem value="same">Same as user</SelectItem>
               {commonTimeZones.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>
                   {tz.label}

@@ -119,7 +119,7 @@ export default function CompanyResearchPage() {
     researchMutation.mutate({ 
       query, 
       lob, 
-      accountId: selectedAccountId || undefined 
+      accountId: selectedAccountId && selectedAccountId !== "" ? selectedAccountId : undefined 
     });
   };
 
@@ -218,7 +218,7 @@ export default function CompanyResearchPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   Research Results: {query}
-                  {selectedAccountId && <Badge variant="secondary">Saved to Account</Badge>}
+                  {selectedAccountId && selectedAccountId !== "" && <Badge variant="secondary">Saved to Account</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent>

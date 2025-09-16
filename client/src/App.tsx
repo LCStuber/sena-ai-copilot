@@ -17,11 +17,14 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={DashboardPage} />
+      <Route path="/dashboard" component={DashboardPage} />
       <Route path="/research" component={CompanyResearchPage} />
       <Route path="/playbook" component={PlaybookNotesPage} />
       <Route path="/nbas" component={NbasPage} />
       <Route path="/artifacts" component={ArtifactsPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/login" component={AuthPage} />
+      <Route path="/auth/oidc" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );

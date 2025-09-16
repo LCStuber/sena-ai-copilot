@@ -9,6 +9,19 @@ import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema 
 import { z } from "zod";
 
 function isAuthenticated(req: any, res: any, next: any) {
+  // Development bypass for demo
+  if (process.env.NODE_ENV === "development") {
+    req.user = {
+      id: "123e4567-e89b-12d3-a456-426614174000",
+      username: "demo_user",
+      email: "demo@sena.ai",
+      firstName: "Demo",
+      lastName: "User",
+      role: "sdr"
+    };
+    return next();
+  }
+  
   if (req.isAuthenticated()) {
     return next();
   }
@@ -73,8 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = await searchCompany(query, lob);
       
-      // Save research if accountId provided
-      if (accountId) {
+      // Save research if accountId provided and is not empty
+      if (accountId && accountId.trim() !== "") {
         await storage.createCompanyResearch({
           accountId,
           query,

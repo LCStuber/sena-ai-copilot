@@ -58,15 +58,13 @@ export default function Sidebar() {
           const Icon = item.icon;
           
           return (
-            <Link key={item.name} href={item.href}>
-              <a className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            <Link key={item.name} href={item.href} className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isActive
                   ? "text-accent-foreground bg-accent"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`} data-testid={`link-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <Icon className="w-5 h-5 mr-3" />
                 {item.name}
-              </a>
             </Link>
           );
         })}
