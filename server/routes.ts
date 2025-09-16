@@ -49,6 +49,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         assignedTo: req.user.id,
       });
+      
+      // Check for duplicate account based on name and website
+      const existingAccount = await storage.findAccountByNameOrWebsite(
+        accountData.name, 
+        accountData.website
+      );
+      
+      if (existingAccount) {
+        // Return the existing account instead of creating a duplicate
+        console.log(`Duplicate account detected: ${accountData.name}. Using existing account: ${existingAccount.id}`);
+        return res.status(200).json(existingAccount);
+      }
+      
+      // No duplicate found, create new account
       const account = await storage.createAccount(accountData);
       res.status(201).json(account);
     } catch (error) {

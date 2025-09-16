@@ -22,7 +22,7 @@ import {
   type InsertArtifact,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, ilike } from "drizzle-orm";
+import { eq, desc, and, ilike, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -38,6 +38,7 @@ export interface IStorage {
   // Account methods
   getAccount(id: string): Promise<Account | undefined>;
   getAccountsByUser(userId: string): Promise<Account[]>;
+  findAccountByNameOrWebsite(name: string, website?: string): Promise<Account | undefined>;
   createAccount(account: InsertAccount): Promise<Account>;
   updateAccount(id: string, updates: Partial<Account>): Promise<Account>;
 
@@ -107,6 +108,40 @@ export class DatabaseStorage implements IStorage {
       .from(accounts)
       .where(eq(accounts.assignedTo, userId))
       .orderBy(desc(accounts.updatedAt));
+  }
+
+  async findAccountByNameOrWebsite(name: string, website?: string): Promise<Account | undefined> {
+    // Normalize inputs for comparison
+    const normalizedName = name.toLowerCase().trim();
+    const normalizedWebsite = website ? website.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') : null;
+    
+    // First check by exact name match
+    let query = db
+      .select()
+      .from(accounts)
+      .where(sql`LOWER(TRIM(${accounts.name})) = ${normalizedName}`);
+    
+    const [exactNameMatch] = await query;
+    if (exactNameMatch) {
+      return exactNameMatch;
+    }
+    
+    // If website is provided, also check by website
+    if (normalizedWebsite) {
+      const websiteQuery = db
+        .select()
+        .from(accounts)
+        .where(
+          sql`LOWER(REPLACE(REPLACE(REPLACE(TRIM(${accounts.website}), 'https://', ''), 'http://', ''), 'www.', '')) = ${normalizedWebsite}`
+        );
+      
+      const [websiteMatch] = await websiteQuery;
+      if (websiteMatch) {
+        return websiteMatch;
+      }
+    }
+    
+    return undefined;
   }
 
   async createAccount(insertAccount: InsertAccount): Promise<Account> {
