@@ -203,6 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (accountId) filters.accountId = accountId as string;
       if (status) filters.status = status as string;
+      if (priority) filters.priority = priority as string;
 
       const nbas = await storage.getNextBestActions(filters);
       res.json(nbas);

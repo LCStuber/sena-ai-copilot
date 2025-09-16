@@ -187,7 +187,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Next Best Actions methods
-  async getNextBestActions(filters?: { accountId?: string; status?: string; userId?: string }): Promise<NextBestAction[]> {
+  async getNextBestActions(filters?: { accountId?: string; status?: string; userId?: string; priority?: string }): Promise<NextBestAction[]> {
     const conditions = [];
     if (filters?.accountId) {
       conditions.push(eq(nextBestActions.accountId, filters.accountId));
@@ -197,6 +197,9 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters?.userId) {
       conditions.push(eq(nextBestActions.owner, filters.userId));
+    }
+    if (filters?.priority) {
+      conditions.push(eq(nextBestActions.priority, filters.priority as any));
     }
 
     if (conditions.length > 0) {

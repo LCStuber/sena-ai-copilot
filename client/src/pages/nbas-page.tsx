@@ -54,9 +54,9 @@ export default function NbasPage() {
     queryFn: ({ queryKey }) => {
       const [, filters] = queryKey as [string, any];
       const params = new URLSearchParams();
-      if (filters.accountId) params.append('accountId', filters.accountId);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.priority && filters.priority !== 'all') params.append('priority', filters.priority);
       
       return fetch(`/api/nbas?${params.toString()}`).then(res => {
         if (!res.ok) throw new Error('Failed to fetch NBAs');
