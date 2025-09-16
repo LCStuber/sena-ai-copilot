@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Search, ExternalLink, Plus, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CompanySearchResult {
@@ -36,6 +37,8 @@ export default function CompanyResearchPage() {
   const [lob, setLob] = useState<"LTS" | "LSS" | "">("");
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [searchResults, setSearchResults] = useState<CompanySearchResult | null>(null);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [searchedQuery, setSearchedQuery] = useState("");
   const { toast } = useToast();
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -47,21 +50,65 @@ export default function CompanyResearchPage() {
       const response = await apiRequest("POST", "/api/research/company", data);
       return response.json();
     },
-    onSuccess: (data: CompanySearchResult) => {
+    onSuccess: (data: CompanySearchResult, variables) => {
       setSearchResults(data);
-      toast({
-        title: "Research Complete",
-        description: "Company research has been generated successfully.",
-      });
+      setSearchedQuery(variables.query); // Store the searched company name from variables
       
-      // Invalidate accounts if research was saved to an account
-      if (selectedAccountId) {
+      // Only show toast if this is not an auto-save after account creation
+      if (!variables.accountId || variables.accountId === selectedAccountId) {
+        toast({
+          title: "Research Complete",
+          description: "Company research has been generated successfully.",
+        });
+      }
+      
+      // Show save prompt only if no account was involved in this research call
+      if (!variables.accountId) {
+        setShowSavePrompt(true);
+      } else {
         queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+        setShowSavePrompt(false); // Hide prompt since research is saved
       }
     },
     onError: (error: Error) => {
       toast({
         title: "Research Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await apiRequest("POST", "/api/accounts", { 
+        name,
+        stage: "Discovery",
+        priority: "Medium",
+        lob: lob
+      });
+      return response.json();
+    },
+    onSuccess: (newAccount: Account) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      setSelectedAccountId(newAccount.id); // Update selected account for UI consistency
+      setShowSavePrompt(false);
+      toast({
+        title: "Account Created & Research Saved",
+        description: `${newAccount.name} has been added to your active accounts and research has been saved.`,
+      });
+      // Now save the research to the newly created account (will be silent)
+      if (searchResults) {
+        researchMutation.mutate({ 
+          query: searchedQuery, 
+          lob, 
+          accountId: newAccount.id 
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Create Account",
         description: error.message,
         variant: "destructive",
       });
@@ -173,22 +220,25 @@ export default function CompanyResearchPage() {
                 </div>
                 
                 {accounts.length > 0 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="accountSelect">Save to Account (Optional)</Label>
-                    <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                      <SelectTrigger data-testid="select-account">
-                        <SelectValue placeholder="Select account to save research" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Don't save to account</SelectItem>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <details className="space-y-2">
+                    <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground">Advanced: Save to Existing Account</summary>
+                    <div className="space-y-2 pt-2">
+                      <Label htmlFor="accountSelect">Save to Existing Account (Optional)</Label>
+                      <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                        <SelectTrigger data-testid="select-account">
+                          <SelectValue placeholder="Select existing account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Don't save to existing account</SelectItem>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </details>
                 )}
 
                 <Button 
@@ -212,13 +262,56 @@ export default function CompanyResearchPage() {
             </CardContent>
           </Card>
 
+          {/* Save Account Prompt */}
+          {showSavePrompt && searchResults && (
+            <Alert className="mb-6 border-primary bg-primary/5" data-testid="alert-save-account">
+              <Building className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <div>
+                  <strong>Add {searchedQuery} to your active accounts?</strong>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This will create a new account in your pipeline for ongoing sales activities.
+                  </p>
+                </div>
+                <div className="flex space-x-2 ml-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowSavePrompt(false)}
+                    data-testid="button-skip-save"
+                  >
+                    Skip
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => createAccountMutation.mutate(searchedQuery)}
+                    disabled={createAccountMutation.isPending}
+                    data-testid="button-save-account"
+                  >
+                    {createAccountMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add to Accounts
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Research Results */}
           {searchResults && (
             <Card data-testid="card-research-results">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Research Results: {query}
-                  {selectedAccountId && selectedAccountId !== "" && selectedAccountId !== "none" && <Badge variant="secondary">Saved to Account</Badge>}
+                  Research Results: {searchedQuery}
+                  {((selectedAccountId && selectedAccountId !== "" && selectedAccountId !== "none") || !showSavePrompt) && searchResults && <Badge variant="secondary">Saved to Account</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent>
