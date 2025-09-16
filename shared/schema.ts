@@ -290,6 +290,8 @@ export const agentIntentSchema = z.enum([
   "list_nbas",
   "complete_nba",
   "list_artifacts",
+  "search_accounts",
+  "create_account",
   "general_question",
   "clarification_needed"
 ]);
@@ -328,6 +330,17 @@ export const listArtifactsParamsSchema = z.object({
 
 export const generalQuestionParamsSchema = z.object({
   question: z.string().min(1),
+});
+
+export const searchAccountsParamsSchema = z.object({
+  searchTerm: z.string().min(1).optional(),
+  status: z.enum(["Active", "Inactive"]).optional(),
+});
+
+export const createAccountParamsSchema = z.object({
+  name: z.string().min(1),
+  website: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const agentMessageSchema = z.object({
@@ -371,6 +384,8 @@ export type ListNbasParams = z.infer<typeof listNbasParamsSchema>;
 export type CompleteNbaParams = z.infer<typeof completeNbaParamsSchema>;
 export type ListArtifactsParams = z.infer<typeof listArtifactsParamsSchema>;
 export type GeneralQuestionParams = z.infer<typeof generalQuestionParamsSchema>;
+export type SearchAccountsParams = z.infer<typeof searchAccountsParamsSchema>;
+export type CreateAccountParams = z.infer<typeof createAccountParamsSchema>;
 export type AgentMessage = z.infer<typeof agentMessageSchema>;
 export type AgentChatRequest = z.infer<typeof agentChatRequestSchema>;
 export type AgentChatResponse = z.infer<typeof agentChatResponseSchema>;

@@ -238,6 +238,8 @@ export const SENA_PROMPTS = {
 - list_nbas: User wants to see Next Best Actions (optional: accountId, status)
 - complete_nba: User wants to mark an NBA as complete (needs: nbaId)
 - list_artifacts: User wants to see saved artifacts/notes (optional: accountId, type)
+- search_accounts: User wants to search for existing accounts (optional: searchTerm, status)
+- create_account: User wants to create a new account (needs: name, optional: website, description)
 - general_question: General questions about SENA capabilities or sales guidance
 - clarification_needed: Intent unclear, need more information
 

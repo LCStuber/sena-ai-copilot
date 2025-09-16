@@ -10,13 +10,17 @@ import {
   CompleteNbaParams,
   ListArtifactsParams,
   GeneralQuestionParams,
+  SearchAccountsParams,
+  CreateAccountParams,
   companyResearchParamsSchema,
   transcriptAnalysisParamsSchema,
   meetingPrepParamsSchema,
   listNbasParamsSchema,
   completeNbaParamsSchema,
   listArtifactsParamsSchema,
-  generalQuestionParamsSchema
+  generalQuestionParamsSchema,
+  searchAccountsParamsSchema,
+  createAccountParamsSchema
 } from '@shared/schema';
 import { searchCompany } from './company-research';
 import { processTranscript } from './notes-generation';
@@ -111,6 +115,12 @@ export async function dispatchAction(
         
       case "list_artifacts":
         return await handleListArtifacts(params, userId);
+        
+      case "search_accounts":
+        return await handleSearchAccounts(params, userId);
+        
+      case "create_account":
+        return await handleCreateAccount(params, userId);
         
       case "general_question":
         return await handleGeneralQuestion(params);
@@ -436,4 +446,126 @@ async function handleGeneralQuestion(params: GeneralQuestionParams) {
       ]
     };
   }
+}
+
+async function handleSearchAccounts(params: SearchAccountsParams, userId: string) {
+  const validatedParams = searchAccountsParamsSchema.parse(params);
+  
+  const accounts = await storage.getAccountsByUser(userId);
+  
+  let filteredAccounts = accounts;
+  
+  // Filter by search term if provided
+  if (validatedParams.searchTerm) {
+    const searchTerm = validatedParams.searchTerm.toLowerCase();
+    filteredAccounts = accounts.filter((account: any) => 
+      account.name.toLowerCase().includes(searchTerm) ||
+      (account.website && account.website.toLowerCase().includes(searchTerm)) ||
+      (account.description && account.description.toLowerCase().includes(searchTerm))
+    );
+  }
+  
+  // Filter by status if provided
+  if (validatedParams.status) {
+    filteredAccounts = filteredAccounts.filter((account: any) => 
+      account.status === validatedParams.status
+    );
+  }
+  
+  return {
+    summary: `I found ${filteredAccounts.length} account(s)${validatedParams.searchTerm ? ` matching "${validatedParams.searchTerm}"` : ''}${validatedParams.status ? ` with status "${validatedParams.status}"` : ''}.`,
+    actionResults: [
+      {
+        type: 'accounts_list',
+        title: 'Account Search Results',
+        description: `${filteredAccounts.length} account(s) found`,
+        link: '/accounts',
+        data: { total: filteredAccounts.length, searchTerm: validatedParams.searchTerm }
+      },
+      ...filteredAccounts.slice(0, 10).map((account: any) => ({
+        type: 'account',
+        title: account.name,
+        description: account.description || account.website || 'Sales account',
+        link: `/accounts/${account.id}`,
+        data: { 
+          id: account.id, 
+          name: account.name, 
+          website: account.website,
+          status: account.status,
+          createdAt: account.createdAt 
+        }
+      }))
+    ],
+    suggestedFollowUps: [
+      filteredAccounts.length > 0 ? "Would you like me to research any of these accounts?" : "Should I help you create a new account?",
+      "Do you need help with Next Best Actions for any account?",
+      filteredAccounts.length > 10 ? "Would you like to see more results?" : undefined
+    ].filter(Boolean) as string[]
+  };
+}
+
+async function handleCreateAccount(params: CreateAccountParams, userId: string) {
+  const validatedParams = createAccountParamsSchema.parse(params);
+  
+  // Check if account with this name already exists
+  const existingAccounts = await storage.getAccountsByUser(userId);
+  const existingAccount = existingAccounts.find((acc: any) => 
+    acc.name.toLowerCase() === validatedParams.name.toLowerCase()
+  );
+  
+  if (existingAccount) {
+    return {
+      summary: `An account named "${validatedParams.name}" already exists. I can help you work with the existing account instead.`,
+      actionResults: [
+        {
+          type: 'account_exists',
+          title: `Account "${validatedParams.name}" Found`,
+          description: 'This account already exists in your system',
+          link: `/accounts/${existingAccount.id}`,
+          data: { 
+            id: existingAccount.id, 
+            name: existingAccount.name,
+            existing: true
+          }
+        }
+      ],
+      suggestedFollowUps: [
+        "Would you like me to research this existing account?",
+        "Should I show you the Next Best Actions for this account?",
+        "Would you like to update the account details?"
+      ]
+    };
+  }
+  
+  // Create new account
+  const newAccount = await storage.createAccount({
+    name: validatedParams.name,
+    website: validatedParams.website,
+    description: validatedParams.description,
+    assignedTo: userId,
+  });
+  
+  return {
+    summary: `I've successfully created the account "${validatedParams.name}". You can now start working with this account, add research, and track Next Best Actions.`,
+    actionResults: [
+      {
+        type: 'account_created',
+        title: `Account "${validatedParams.name}" Created`,
+        description: validatedParams.description || 'New sales account ready for engagement',
+        link: `/accounts/${newAccount.id}`,
+        data: { 
+          id: newAccount.id, 
+          name: newAccount.name,
+          website: validatedParams.website,
+          description: validatedParams.description,
+          created: true
+        }
+      }
+    ],
+    suggestedFollowUps: [
+      "Would you like me to research this company now?",
+      "Should I help you prepare for your first meeting?",
+      "Do you have any meeting transcripts to analyze for this account?"
+    ]
+  };
 }
