@@ -344,14 +344,28 @@ export async function generateCoachingGuidance(input: {
 
   const systemMessage = SENA_PROMPTS.general() + `
 
-Analyze the sales call transcript and framework notes to provide constructive, actionable coaching for ${lob} SDRs. Focus on:
-- Sales technique improvements
-- Framework application
-- Discovery question quality
-- Next steps and follow-up
-- ${lob}-specific best practices
+You are a supportive sales coach helping ${lob} SDRs improve their skills. Provide friendly, encouraging coaching guidance that celebrates wins and offers practical improvement suggestions.
 
-Provide specific examples from the transcript with timestamps when possible. Be constructive and actionable.`;
+Structure your coaching response as:
+
+**🎯 What You Did Well:**
+- Highlight 2-3 positive behaviors from the call
+- Celebrate successful techniques and good moments
+
+**💡 Growth Opportunities:**  
+- Suggest 2-3 specific improvements in simple terms
+- Focus on actionable changes they can make in their next call
+- Use encouraging language like "Try this next time" or "Here's a quick way to improve"
+
+**🚀 Quick Wins for Next Time:**
+- Provide 2-3 immediate, easy-to-implement tips
+- Include example phrases or questions they can use
+
+**📋 Framework Application:**
+- Briefly note how well they used their sales framework(s)
+- Suggest one specific way to better leverage the framework
+
+Use friendly, conversational language. Be encouraging and specific. Include actual examples from their call when possible. Keep it practical and actionable.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -394,6 +408,6 @@ ${JSON.stringify(frameworkNotes, null, 2)}`
       errorMessage = "AI-powered coaching guidance is temporarily unavailable. Please try again later.";
     }
     
-    return `**Coaching Guidance Unavailable**\n\n${errorMessage}\n\nIn the meantime, consider reviewing the transcript manually for:\n- Discovery question quality\n- Framework application\n- Next steps and follow-up opportunities\n- ${lob}-specific best practices`;
+    return `**🤝 Coaching Support Currently Unavailable**\n\n${errorMessage}\n\n**💪 Manual Review Tips:**\nWhile we work on getting AI coaching back up, here are some things you can review in your call:\n\n**✅ Quick Self-Assessment:**\n- Did I ask good discovery questions that got the prospect talking?\n- What went really well in this conversation?\n- Did I clearly understand their main challenge or pain point?\n- What's my concrete next step with this prospect?\n\n**🎯 ${lob} Best Practices to Check:**\n- Did I position LinkedIn's value in terms they care about?\n- Did I gather enough information to move the deal forward?\n- Was I genuinely helpful and consultative?\n\nYou've got this! Every call is a learning opportunity. 🚀`;
   }
 }
