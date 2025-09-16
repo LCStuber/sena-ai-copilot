@@ -122,9 +122,9 @@ export default function DashboardPage() {
   return (
         <div>
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground" data-testid="text-dashboard-title">Account Dashboard</h1>
-            <p className="mt-2 text-muted-foreground">Your sales enablement command center</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground" data-testid="text-dashboard-title">Account Dashboard</h1>
+            <p className="mt-2 text-sm md:text-base text-muted-foreground">Your sales enablement command center</p>
           </div>
 
           {/* Time Zone Selector */}
@@ -136,19 +136,19 @@ export default function DashboardPage() {
           />
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
             {statCards.map((stat) => {
               const Icon = stat.icon;
               return (
                 <Card key={stat.title} data-testid={`card-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                  <CardContent className="pt-6">
+                  <CardContent className="p-4 md:pt-6">
                     <div className="flex items-center">
-                      <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                        <Icon className={`w-6 h-6 ${stat.color}`} />
+                      <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor}`}>
+                        <Icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
                       </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                        <p className="text-2xl font-bold text-foreground" data-testid={`text-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                      <div className="ml-3 md:ml-4">
+                        <p className="text-xs md:text-sm font-medium text-muted-foreground">{stat.title}</p>
+                        <p className="text-xl md:text-2xl font-bold text-foreground" data-testid={`text-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
                           {statsLoading ? "..." : stat.value}
                         </p>
                       </div>
@@ -159,17 +159,17 @@ export default function DashboardPage() {
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* Active Accounts */}
             <div className="lg:col-span-2">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                     <CardTitle data-testid="text-active-accounts-title">Active Accounts</CardTitle>
                     <div className="flex items-center space-x-2">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                        <SelectTrigger className="w-40" data-testid="select-priority-filter">
+                        <SelectTrigger className="w-full sm:w-40" data-testid="select-priority-filter">
                           <SelectValue placeholder="All Priorities" />
                         </SelectTrigger>
                         <SelectContent>

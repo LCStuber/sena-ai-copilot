@@ -174,15 +174,15 @@ export default function CompanyResearchPage() {
   return (
         <div>
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground" data-testid="text-research-title">Company Research</h1>
-            <p className="mt-2 text-muted-foreground">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground" data-testid="text-research-title">Company Research</h1>
+            <p className="mt-2 text-sm md:text-base text-muted-foreground">
               Find and cite succinct company/industry context to accelerate prospecting
             </p>
           </div>
 
           {/* Research Form */}
-          <Card className="mb-8">
+          <Card className="mb-6 md:mb-8">
             <CardHeader>
               <CardTitle data-testid="text-research-form-title">Research Company</CardTitle>
             </CardHeader>

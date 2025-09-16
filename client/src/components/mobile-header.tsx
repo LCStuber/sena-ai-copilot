@@ -40,7 +40,7 @@ export default function MobileHeader() {
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName && lastName) {
-      return `${firstName[0]}${lastName[1]}`.toUpperCase();
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
     }
     return user.username?.[0]?.toUpperCase() || "U";
   };
