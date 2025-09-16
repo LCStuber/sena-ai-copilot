@@ -82,7 +82,7 @@ export default function DashboardPage() {
       icon: LayoutDashboard,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      href: "/research",
+      href: "/accounts",
     },
     {
       title: "Completed NBAs",
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                       </Select>
                     </div>
                   </div>
-                  <Link href="/research">
+                  <Link href="/accounts">
                     <Button variant="ghost" size="sm" data-testid="button-view-all-accounts">
                       View All
                     </Button>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                             <Badge className={getPriorityColor(account.priority)}>
                               {account.priority} Priority
                             </Badge>
-                            <Link href="/research">
+                            <Link href="/accounts">
                               <Button variant="ghost" size="sm" data-testid={`button-open-account-${account.id}`}>
                                 <ChevronRight className="w-4 h-4" />
                               </Button>

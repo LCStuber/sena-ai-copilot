@@ -9,6 +9,7 @@ import ResponsiveLayout from "./components/responsive-layout";
 import AuthPage from "./pages/auth-page";
 import DashboardPage from "./pages/dashboard-page";
 import CompanyResearchPage from "./pages/company-research-page";
+import ActiveAccountsPage from "./pages/active-accounts-page";
 import PlaybookNotesPage from "./pages/playbook-notes-page";
 import NbasPage from "./pages/nbas-page";
 import ArtifactsPage from "./pages/artifacts-page";
@@ -20,6 +21,7 @@ function Router() {
       <ProtectedRoute path="/" component={() => <ResponsiveLayout><DashboardPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/dashboard" component={() => <ResponsiveLayout><DashboardPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/research" component={() => <ResponsiveLayout><CompanyResearchPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/accounts" component={() => <ResponsiveLayout><ActiveAccountsPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/playbook" component={() => <ResponsiveLayout><PlaybookNotesPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/nbas" component={() => <ResponsiveLayout><NbasPage /></ResponsiveLayout>} />
       <ProtectedRoute path="/artifacts" component={() => <ResponsiveLayout><ArtifactsPage /></ResponsiveLayout>} />
