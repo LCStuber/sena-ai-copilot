@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Filter,
   Save,
-  X
+  X,
+  ArrowUpDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDueDate } from "@/lib/time-utils";
@@ -47,6 +48,7 @@ export default function NbasPage() {
   const [accountFilter, setAccountFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("Open");
+  const [sortBy, setSortBy] = useState("dueDate");
   const [userTimeZone] = useState("America/New_York");
   const [editingNBA, setEditingNBA] = useState<NextBestAction | null>(null);
   const [editForm, setEditForm] = useState({
@@ -63,7 +65,7 @@ export default function NbasPage() {
     queryKey: ["/api/accounts"],
   });
 
-  const { data: nbas = [], isLoading } = useQuery<NextBestAction[]>({
+  const { data: fetchedNbas = [], isLoading } = useQuery<NextBestAction[]>({
     queryKey: ["/api/nbas", { accountId: accountFilter, status: statusFilter, priority: priorityFilter }],
     queryFn: ({ queryKey }) => {
       const [, filters] = queryKey as [string, any];
@@ -78,6 +80,37 @@ export default function NbasPage() {
       });
     },
   });
+
+  // Sort the NBAs based on the selected sort option
+  const sortedNbas = [...fetchedNbas].sort((a, b) => {
+    switch (sortBy) {
+      case "dueDate":
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      case "dueDateDesc":
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+      case "priority":
+        const priorityOrder = { "High": 3, "Medium": 2, "Low": 1 };
+        return (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+      case "priorityDesc":
+        const priorityOrderDesc = { "High": 1, "Medium": 2, "Low": 3 };
+        return (priorityOrderDesc[a.priority as keyof typeof priorityOrderDesc] || 0) - (priorityOrderDesc[b.priority as keyof typeof priorityOrderDesc] || 0);
+      case "account":
+        return getAccountName(a.accountId).localeCompare(getAccountName(b.accountId));
+      case "accountDesc":
+        return getAccountName(b.accountId).localeCompare(getAccountName(a.accountId));
+      case "status":
+        const statusOrder = { "Overdue": 4, "Open": 3, "In Progress": 2, "Completed": 1 };
+        return (statusOrder[b.status as keyof typeof statusOrder] || 0) - (statusOrder[a.status as keyof typeof statusOrder] || 0);
+      case "createdAt":
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case "createdAtDesc":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      default:
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    }
+  });
+
+  const nbas = sortedNbas;
 
   const updateNBAMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<NextBestAction> }) => {
@@ -233,12 +266,12 @@ export default function NbasPage() {
             </p>
           </div>
 
-          {/* Filters */}
+          {/* Filters & Sorting */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Filter className="w-5 h-5" />
-                Filters
+                Filters & Sorting
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -287,6 +320,26 @@ export default function NbasPage() {
                       <SelectItem value="In Progress">In Progress</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>
                       <SelectItem value="Overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col space-y-2">
+                  <label className="text-sm font-medium text-foreground">Sort By</label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-48" data-testid="select-sort-by">
+                      <SelectValue placeholder="Sort By" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dueDate">Due Date (Earliest First)</SelectItem>
+                      <SelectItem value="dueDateDesc">Due Date (Latest First)</SelectItem>
+                      <SelectItem value="priority">Priority (High to Low)</SelectItem>
+                      <SelectItem value="priorityDesc">Priority (Low to High)</SelectItem>
+                      <SelectItem value="account">Account Name (A-Z)</SelectItem>
+                      <SelectItem value="accountDesc">Account Name (Z-A)</SelectItem>
+                      <SelectItem value="status">Status (Most Urgent)</SelectItem>
+                      <SelectItem value="createdAt">Created Date (Oldest First)</SelectItem>
+                      <SelectItem value="createdAtDesc">Created Date (Newest First)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
