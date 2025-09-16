@@ -275,7 +275,7 @@ export default function PlaybookNotesPage() {
 
   const handleEditNote = (noteId: string, content: any) => {
     setEditingNoteId(noteId);
-    setEditedContent(content);
+    setEditedContent(convertToText(content));
   };
 
   const handleSaveNote = (noteId: string) => {
@@ -287,43 +287,62 @@ export default function PlaybookNotesPage() {
 
   const handleCancelEdit = () => {
     setEditingNoteId(null);
-    setEditedContent({});
+    setEditedContent("");
   };
 
-  const handleContentChange = (key: string, newValue: string) => {
-    setEditedContent((prev: any) => ({
-      ...prev,
-      [key]: newValue,
-    }));
+  const handleContentChange = (newValue: string) => {
+    setEditedContent(newValue);
   };
+
+  const convertToText = (content: any): string => {
+    if (typeof content === 'string') {
+      return content;
+    }
+    
+    if (typeof content === 'object' && content !== null) {
+      // Convert JSON object to readable text format
+      return Object.entries(content)
+        .map(([key, value]) => {
+          const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+          const formattedValue = Array.isArray(value) ? value.join(', ') : String(value);
+          return `${formattedKey}: ${formattedValue}`;
+        })
+        .join('\n\n');
+    }
+    
+    return String(content);
+  };
+
+  const convertFromText = (textContent: string): string => {
+    // Store as plain text instead of converting back to JSON
+    return textContent;
+  };
+
 
   const renderFrameworkContent = (framework: string, content: any, noteId: string) => {
-    if (!content || typeof content !== 'object') return null;
+    if (!content) return null;
 
     const isEditing = editingNoteId === noteId;
-    const displayContent = isEditing ? editedContent : content;
+    const textContent = convertToText(content);
+    const displayContent = isEditing ? editedContent : textContent;
 
     return (
       <div className="space-y-3 text-sm">
-        {Object.entries(displayContent).map(([key, value]) => (
-          <div key={key}>
-            <strong className="text-foreground">{key.replace(/([A-Z])/g, ' $1').trim()}:</strong>{" "}
-            {isEditing ? (
-              <div className="mt-2">
-                <Textarea
-                  value={Array.isArray(value) ? value.join(", ") : String(value)}
-                  onChange={(e) => handleContentChange(key, e.target.value)}
-                  className="min-h-[80px] text-sm"
-                  data-testid={`textarea-edit-${framework}-${key}`}
-                />
-              </div>
-            ) : (
-              <span className="text-muted-foreground">
-                {Array.isArray(value) ? value.join(", ") : String(value)}
-              </span>
-            )}
+        {isEditing ? (
+          <div>
+            <Textarea
+              value={displayContent}
+              onChange={(e) => handleContentChange(e.target.value)}
+              className="min-h-[200px] text-sm font-mono"
+              placeholder="Enter your notes in plain text format..."
+              data-testid={`textarea-edit-${framework}`}
+            />
           </div>
-        ))}
+        ) : (
+          <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            {displayContent || 'No notes available'}
+          </div>
+        )}
         {isEditing && (
           <div className="flex space-x-2 mt-4 pt-4 border-t">
             <Button 

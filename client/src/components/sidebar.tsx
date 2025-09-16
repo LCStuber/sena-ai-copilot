@@ -19,7 +19,7 @@ const navigation = [
   { name: "Company Research", href: "/research", icon: Search },
   { name: "Playbook Notes Studio", href: "/playbook", icon: BookOpen },
   { name: "Next Best Actions", href: "/nbas", icon: CheckSquare },
-  { name: "CRM Integration", href: "/artifacts", icon: Database },
+  { name: "Historical Notes", href: "/artifacts", icon: Database },
 ];
 
 interface SidebarProps {

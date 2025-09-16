@@ -378,12 +378,12 @@ export default function HistoricalNotesPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
-              CRM Integration
+              Historical Notes
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Sync your notes with your CRM system for seamless workflow integration.
+              View and manage all your historical notes in one place for easy reference.
             </p>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export default function HistoricalNotesPage() {
               </div>
               <Button className="w-full" data-testid="button-setup-crm">
                 <Settings className="w-4 h-4 mr-2" />
-                Setup CRM Integration
+                Export Historical Notes
               </Button>
             </div>
           </CardContent>
