@@ -66,13 +66,13 @@ export async function calculatePipelineHealth(accountId: string): Promise<Pipeli
     // Calculate NBA progress (10% weight)
     const nbaProgress = calculateNBAProgress(nbas);
     
-    // Calculate final score
-    const score = Math.round(
+    // Calculate final score (0-100)
+    const score = Math.round((
       0.5 * frameworkCoverage + 
       0.3 * qualitySignal + 
       0.1 * recency + 
       0.1 * nbaProgress
-    ) * 100;
+    ) * 100);
     
     // Determine label
     let label: 'Healthy' | 'Watchlist' | 'At Risk';
