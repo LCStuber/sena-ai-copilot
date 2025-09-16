@@ -11,23 +11,26 @@ import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema,
 import { z } from "zod";
 
 function isAuthenticated(req: any, res: any, next: any) {
-  // Development bypass for demo
-  if (process.env.NODE_ENV === "development") {
-    req.user = {
-      id: "123e4567-e89b-12d3-a456-426614174000",
-      username: "demo_user",
-      email: "demo@sena.ai",
-      firstName: "Demo",
-      lastName: "User",
-      role: "sdr"
-    };
-    return next();
-  }
+  // Authentication disabled for now - bypassing all checks
+  // // Development bypass for demo
+  // if (process.env.NODE_ENV === "development") {
+  //   req.user = {
+  //     id: "123e4567-e89b-12d3-a456-426614174000",
+  //     username: "demo_user",
+  //     email: "demo@sena.ai",
+  //     firstName: "Demo",
+  //     lastName: "User",
+  //     role: "sdr"
+  //   };
+  //   return next();
+  // }
+  // 
+  // if (req.isAuthenticated()) {
+  //   return next();
+  // }
+  // res.status(401).json({ message: "Unauthorized" });
   
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Unauthorized" });
+  return next();
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
