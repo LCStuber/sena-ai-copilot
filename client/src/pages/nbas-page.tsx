@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import Sidebar from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -222,11 +221,8 @@ export default function NbasPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+    <>
+        <div>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground" data-testid="text-nbas-title">
@@ -428,7 +424,6 @@ export default function NbasPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
 
       {/* Edit NBA Dialog */}
       <Dialog open={!!editingNBA} onOpenChange={(open) => !open && handleCloseEditDialog()}>
@@ -554,6 +549,6 @@ export default function NbasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

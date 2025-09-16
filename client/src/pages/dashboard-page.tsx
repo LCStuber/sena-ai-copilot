@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import Sidebar from "@/components/sidebar";
 import TimeZoneSelector from "@/components/time-zone-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,11 +120,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+        <div>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground" data-testid="text-dashboard-title">Account Dashboard</h1>
@@ -319,7 +314,5 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
   );
 }

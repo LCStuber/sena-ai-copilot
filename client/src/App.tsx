@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import ResponsiveLayout from "./components/responsive-layout";
 import AuthPage from "./pages/auth-page";
 import DashboardPage from "./pages/dashboard-page";
 import CompanyResearchPage from "./pages/company-research-page";
@@ -16,12 +17,12 @@ import NotFound from "./pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={DashboardPage} />
-      <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/research" component={CompanyResearchPage} />
-      <Route path="/playbook" component={PlaybookNotesPage} />
-      <Route path="/nbas" component={NbasPage} />
-      <Route path="/artifacts" component={ArtifactsPage} />
+      <ProtectedRoute path="/" component={() => <ResponsiveLayout><DashboardPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/dashboard" component={() => <ResponsiveLayout><DashboardPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/research" component={() => <ResponsiveLayout><CompanyResearchPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/playbook" component={() => <ResponsiveLayout><PlaybookNotesPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/nbas" component={() => <ResponsiveLayout><NbasPage /></ResponsiveLayout>} />
+      <ProtectedRoute path="/artifacts" component={() => <ResponsiveLayout><ArtifactsPage /></ResponsiveLayout>} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={AuthPage} />
       <Route path="/auth/oidc" component={AuthPage} />
