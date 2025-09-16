@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { searchCompany, getCompanyFromUrl, vectorSearchCorpus } from "./services/company-research";
 import { processTranscript } from "./services/notes-generation";
 import { generateCoachingGuidance } from "./services/openai";
+import { calculatePipelineHealth, calculateBulkPipelineHealth } from "./services/pipeline-health";
 import { insertAccountSchema, insertCompanyResearchSchema, insertArtifactSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -274,6 +275,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pipeline health routes
+  app.get("/api/pipeline-health", isAuthenticated, async (req: any, res) => {
+    try {
+      const { accountId } = req.query;
+      
+      if (!accountId) {
+        return res.status(400).json({ message: "accountId is required" });
+      }
+
+      const healthScore = await calculatePipelineHealth(accountId);
+      res.json(healthScore);
+    } catch (error) {
+      console.error("Error calculating pipeline health:", error);
+      res.status(500).json({ message: "Failed to calculate pipeline health" });
+    }
+  });
+
+  app.get("/api/pipeline-health/bulk", isAuthenticated, async (req: any, res) => {
+    try {
+      const { accountIds } = req.query;
+      
+      if (!accountIds) {
+        return res.status(400).json({ message: "accountIds is required" });
+      }
+
+      const accountIdArray = Array.isArray(accountIds) ? accountIds : [accountIds];
+      const healthScores = await calculateBulkPipelineHealth(accountIdArray);
+      res.json(healthScores);
+    } catch (error) {
+      console.error("Error calculating bulk pipeline health:", error);
+      res.status(500).json({ message: "Failed to calculate bulk pipeline health" });
+    }
+  });
+
   // Dashboard stats route
   app.get("/api/dashboard/stats", isAuthenticated, async (req: any, res) => {
     try {
@@ -284,14 +319,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate pipeline value (mock calculation)
       const pipelineValue = accounts.length * 100000; // $100k average per account
 
-      // Calculate conversion rate (mock calculation)  
-      const conversionRate = Math.round((nbas.length / Math.max(accounts.length * 10, 1)) * 100);
+      // Calculate average pipeline health across all accounts
+      let pipelineHealthAvg = 0;
+      if (accounts.length > 0) {
+        const accountIds = accounts.map(account => account.id);
+        const healthScores = await calculateBulkPipelineHealth(accountIds);
+        const totalScore = healthScores.reduce((sum, score) => sum + score.score, 0);
+        pipelineHealthAvg = Math.round(totalScore / healthScores.length);
+      }
 
       const stats = {
         activeAccounts: accounts.length,
         completedNBAs: nbas.length,
         pipelineValue: `$${(pipelineValue / 1000000).toFixed(1)}M`,
-        conversionRate: `${conversionRate}%`,
+        pipelineHealth: `${pipelineHealthAvg}%`,
       };
 
       res.json(stats);
