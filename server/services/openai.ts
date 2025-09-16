@@ -174,35 +174,71 @@ export async function generateFrameworkNotes(input: FrameworkNotesInput): Promis
     
     If information is not mentioned in the transcript, mark as "Unknown (not mentioned)".`,
 
-    "VEF": `Generate Value Engagement Framework (VEF) notes from this transcript. Extract information for these exact fields:
-    - Customer's Pressures
-    - Customer's Objectives
-    - Customer's Challenges
-    - LinkedIn's Solutions
-    - LinkedIn's Experience
-    - LinkedIn's Unique Value
-    
-    If information is not mentioned in the transcript, mark as "Unknown (not mentioned)".`,
+    "VEF": `Generate Value Engagement Framework (VEF) notes from this transcript. Extract information in this EXACT order with detailed context:
 
-    "MEDDPICC": `Generate MEDDPICC notes from this transcript. Extract information for these exact fields:
-    - Metrics
-    - Economic Buyer
-    - Decision Criteria
-    - Decision Process
-    - Paper Process
-    - Identified Pain
-    - Champion
-    - Competition
-    
-    If information is not mentioned in the transcript, mark as "Unknown (not mentioned)".`,
+    **1 - Customer's Pressures**
+    Identify specific business pressures, pain points, or challenges the customer is facing. Include market conditions, competitive threats, regulatory changes, or internal pressures mentioned. Provide context about how these pressures impact their business.
 
-    "BANT": `Generate BANT notes from this transcript. Extract information for these exact fields:
-    - Budget
-    - Authority
-    - Need
-    - Timeline
-    
-    If information is not mentioned in the transcript, mark as "Unknown (not mentioned)".`,
+    **2 - Customer's Objectives**
+    Extract the customer's stated goals, targets, or desired outcomes. Include both quantitative metrics (revenue growth, cost reduction percentages, etc.) and qualitative objectives. Explain how achieving these objectives would benefit their organization.
+
+    **3 - Customer's Challenges**
+    Document specific obstacles, barriers, or difficulties preventing them from achieving their objectives. Include technical, organizational, resource, or process-related challenges. Explain how these challenges are impacting their current operations.
+
+    **4 - LinkedIn's Solutions**
+    Capture any LinkedIn products, services, or capabilities discussed as potential solutions. Include specific features, use cases, or implementation approaches mentioned during the conversation.
+
+    **5 - LinkedIn's Experience**
+    Document any LinkedIn case studies, success stories, or relevant experience shared that demonstrates LinkedIn's ability to address similar challenges or objectives.
+
+    **6 - LinkedIn's Unique Value**
+    Extract the differentiated value proposition or unique advantages of LinkedIn's solution compared to alternatives or current state. Include competitive differentiators mentioned.
+
+    For each section, provide detailed context and specific examples from the conversation. If information is not mentioned, mark as "Unknown (not mentioned)".`,
+
+    "MEDDPICC": `Generate MEDDPICC notes from this transcript. Extract information in this EXACT order with detailed context:
+
+    **1 - Metrics**
+    Identify specific, quantifiable success metrics or KPIs mentioned. Include current performance baselines, target improvements, and how success will be measured. Provide context about the business impact of achieving these metrics.
+
+    **2 - Economic Buyer**
+    Document the person with budget authority and financial decision-making power. Include their name, title, role, and level of engagement in the process. Explain their priorities and what matters most to them financially.
+
+    **3 - Decision Criteria**
+    Capture the specific criteria, requirements, or evaluation factors they'll use to make their decision. Include technical requirements, business criteria, and any scoring methodologies mentioned.
+
+    **4 - Decision Process**
+    Extract the steps, stages, or workflow they follow to make purchasing decisions. Include timelines, milestones, review stages, and who is involved at each step. Document any committee structures or approval gates.
+
+    **5 - Paper Process**
+    Identify the administrative, legal, or procurement steps required to complete the purchase. Include contract requirements, legal reviews, compliance needs, and any bureaucratic processes mentioned.
+
+    **6 - Identify Pain**
+    Document specific business pains, problems, or negative impacts of the current situation. Include the cost of inaction and how these pains affect their operations, revenue, or competitive position.
+
+    **7 - Champion**
+    Identify internal advocates who support the LinkedIn solution. Include their name, title, influence level, and reasons for supporting the project. Explain their role in driving the decision forward.
+
+    **8 - Competition**
+    Capture any competing solutions, vendors, or alternatives being considered. Include their strengths, weaknesses, and how LinkedIn compares. Document any competitive differentiation discussed.
+
+    For each section, provide detailed context and specific examples from the conversation. If information is not mentioned, mark as "Unknown (not mentioned)".`,
+
+    "BANT": `Generate BANT notes from this transcript. Extract information in this EXACT order with detailed context:
+
+    **1 - Budget**
+    Identify specific budget information including allocated amounts, budget cycles, funding sources, or financial constraints mentioned. Include any cost parameters, pricing discussions, or budget approval processes. Provide context about their budget timeline and decision-making process.
+
+    **2 - Authority**
+    Document the decision-making structure, key stakeholders, and individuals with purchasing authority. Include names, titles, roles in the decision process, and their level of influence. Explain the approval workflow and who needs to sign off on the purchase.
+
+    **3 - Need**
+    Capture the specific business needs, requirements, or problems that need to be solved. Include the urgency level, impact of not solving the problem, and how this need fits into their broader business strategy. Provide context about current solutions and gaps.
+
+    **4 - Timeline**
+    Extract specific dates, deadlines, or timeframes mentioned for decision-making, implementation, or project start dates. Include any external factors driving the timeline such as fiscal year ends, project dependencies, or business cycles.
+
+    For each section, provide detailed context and specific examples from the conversation. If information is not mentioned, mark as "Unknown (not mentioned)".`,
 
     "LicenseDemandPlan": `Generate License Demand Plan notes from this transcript. Extract information for these exact sections:
     
