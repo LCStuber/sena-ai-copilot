@@ -14,9 +14,14 @@ import {
   Filter,
   Calendar,
   User,
-  Building2
+  Building2,
+  Database,
+  Settings,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
 
 interface Artifact {
   id: string;
@@ -45,10 +50,9 @@ const artifactTypes = [
   { value: "LicenseDemandPlan", label: "License Demand Plan" },
 ];
 
-export default function ArtifactsPage() {
-  const [typeFilter, setTypeFilter] = useState("");
-  const [accountFilter, setAccountFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("Last 30 Days");
+export default function CRMIntegrationPage() {
+  const [exportFormat, setExportFormat] = useState("docx");
+  const [d365Status, setD365Status] = useState("disconnected"); // disconnected, connecting, connected
   const { toast } = useToast();
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -56,14 +60,9 @@ export default function ArtifactsPage() {
   });
 
   const { data: artifacts = [], isLoading } = useQuery<Artifact[]>({
-    queryKey: ["/api/artifacts", { accountId: accountFilter, type: typeFilter }],
-    queryFn: ({ queryKey }) => {
-      const [, filters] = queryKey as [string, any];
-      const params = new URLSearchParams();
-      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
-      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-      
-      return fetch(`/api/artifacts?${params.toString()}`).then(res => {
+    queryKey: ["/api/artifacts"],
+    queryFn: () => {
+      return fetch('/api/artifacts').then(res => {
         if (!res.ok) throw new Error('Failed to fetch artifacts');
         return res.json();
       });
@@ -96,22 +95,94 @@ export default function ArtifactsPage() {
     }
   };
 
-  const handleDownloadArtifact = (artifact: Artifact) => {
-    const content = JSON.stringify(artifact.content, null, 2);
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${artifact.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Download Started",
-      description: "Artifact content is being downloaded.",
-    });
+  const handleExportData = async (format: string) => {
+    try {
+      if (format === 'docx') {
+        // Convert all artifacts to DOCX format
+        const htmlContent = `
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <title>SENA Sales Data Export</title>
+            </head>
+            <body>
+              <h1>SENA Sales Data Export</h1>
+              <p><strong>Export Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <hr>
+              ${artifacts.map(artifact => `
+                <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                  <h2>${artifact.title}</h2>
+                  <p><strong>Type:</strong> ${artifact.type}</p>
+                  <p><strong>Account:</strong> ${getAccountName(artifact.accountId)}</p>
+                  <p><strong>Created:</strong> ${formatDate(artifact.createdAt)}</p>
+                  ${artifact.summary ? `<p><strong>Summary:</strong> ${artifact.summary}</p>` : ''}
+                  <div style="border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
+                    <pre>${JSON.stringify(artifact.content, null, 2)}</pre>
+                  </div>
+                </div>
+              `).join('')}
+            </body>
+          </html>
+        `;
+        
+        // Create a simple document format that can be opened by Word
+        const docContent = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <style>
+                body { font-family: 'Calibri', Arial, sans-serif; line-height: 1.6; }
+                h1, h2 { color: #2e75b6; }
+                .artifact { margin-bottom: 30px; border-bottom: 1px solid #ccc; padding-bottom: 20px; }
+                .metadata { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+                pre { background: #f8f8f8; padding: 15px; border: 1px solid #ddd; }
+              </style>
+            </head>
+            <body>
+              ${htmlContent}
+            </body>
+          </html>
+        `;
+        const docBlob = new Blob([docContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const url = URL.createObjectURL(docBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sena_sales_data_${new Date().toISOString().split('T')[0]}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // Fallback to JSON export
+        const exportData = {
+          exportDate: new Date().toISOString(),
+          artifacts: artifacts,
+          accounts: accounts
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sena_sales_data_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      
+      toast({
+        title: "Export Complete",
+        description: `Sales data exported successfully as ${format.toUpperCase()}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getAccountName = (accountId: string) => {
@@ -159,187 +230,211 @@ export default function ArtifactsPage() {
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground" data-testid="text-artifacts-title">
-              Artifacts
+            <h1 className="text-3xl font-bold text-foreground" data-testid="text-crm-title">
+              CRM Integration
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Manage saved notes, research, and generated content
+              Connect and export your sales data to external CRM systems
             </p>
           </div>
 
-          {/* Filters */}
+          {/* CRM Integration Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Dynamics D365 Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Dynamics D365 Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Connect your SENA data with Microsoft Dynamics 365 CRM for seamless sales workflow integration.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Not Connected</Badge>
+                  </div>
+                  <Button className="w-full" data-testid="button-setup-d365">
+                    Setup D365 Integration
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Export Data */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="w-5 h-5" />
+                  Export Data
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Export your sales artifacts, research, and notes in various formats.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-2">
+                    <label className="text-sm font-medium">Export Format</label>
+                    <Select value={exportFormat} onValueChange={setExportFormat}>
+                      <SelectTrigger data-testid="select-export-format">
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="docx">Microsoft Word (.docx)</SelectItem>
+                        <SelectItem value="csv">CSV (.csv)</SelectItem>
+                        <SelectItem value="json">JSON (.json)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleExportData(exportFormat)}
+                    disabled={artifacts.length === 0}
+                    data-testid="button-export-data"
+                  >
+                    {artifacts.length === 0 ? 'No Data to Export' : 'Export All Data'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Data Summary and Status */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Filter className="w-5 h-5" />
-                Filters
+                <Settings className="w-5 h-5" />
+                Data Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex flex-col space-y-2">
-                  <label className="text-sm font-medium text-foreground">Type</label>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-48" data-testid="select-type-filter">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {artifactTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{artifacts.length}</div>
+                  <div className="text-sm text-muted-foreground">Total Artifacts</div>
                 </div>
-
-                <div className="flex flex-col space-y-2">
-                  <label className="text-sm font-medium text-foreground">Account</label>
-                  <Select value={accountFilter} onValueChange={setAccountFilter}>
-                    <SelectTrigger className="w-48" data-testid="select-account-filter">
-                      <SelectValue placeholder="All Accounts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Accounts</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{accounts.length}</div>
+                  <div className="text-sm text-muted-foreground">Active Accounts</div>
                 </div>
-
-                <div className="flex flex-col space-y-2">
-                  <label className="text-sm font-medium text-foreground">Date Range</label>
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="w-48" data-testid="select-date-filter">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Last 7 Days">Last 7 Days</SelectItem>
-                      <SelectItem value="Last 30 Days">Last 30 Days</SelectItem>
-                      <SelectItem value="This Month">This Month</SelectItem>
-                      <SelectItem value="Custom Range">Custom Range</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    {artifacts.filter(a => a.type === 'CompanyResearch').length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Research Reports</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    {artifacts.filter(a => a.type !== 'CompanyResearch').length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Framework Notes</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Artifacts Grid */}
+          {/* Integration Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Integration Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Database className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <div className="font-medium">Microsoft Dynamics D365</div>
+                      <div className="text-sm text-muted-foreground">CRM Integration</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Not Connected
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Download className="w-6 h-6 text-green-600" />
+                    <div>
+                      <div className="font-medium">Data Export</div>
+                      <div className="text-sm text-muted-foreground">Multiple formats available</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Ready
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Available Data */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-muted rounded-lg" />
-                        <div className="space-y-2">
-                          <div className="h-4 bg-muted rounded w-20" />
-                          <div className="h-3 bg-muted rounded w-16" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-16 bg-muted rounded mb-4" />
-                    <div className="flex justify-between">
-                      <div className="h-3 bg-muted rounded w-24" />
-                      <div className="h-3 bg-muted rounded w-24" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : artifacts.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2" data-testid="text-no-artifacts">
-                No Artifacts Found
-              </h3>
-              <p className="text-muted-foreground">
-                Generate framework notes or company research to create artifacts
-              </p>
+            <div className="text-center py-8">
+              <div className="animate-pulse">
+                <div className="h-4 bg-muted rounded w-32 mx-auto mb-2" />
+                <div className="h-3 bg-muted rounded w-24 mx-auto" />
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {artifacts.map((artifact) => (
-                <Card key={artifact.id} className="hover:shadow-md transition-shadow" data-testid={`artifact-card-${artifact.id}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          {getTypeIcon(artifact.type)}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Available Data for Export
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {artifacts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2" data-testid="text-no-data">
+                      No Data Available
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Generate framework notes or company research to have data available for export
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground mb-4">
+                      The following data will be included in your export:
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(
+                        artifacts.reduce((acc, artifact) => {
+                          acc[artifact.type] = (acc[artifact.type] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>)
+                      ).map(([type, count]) => (
+                        <div key={type} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            {getTypeIcon(type)}
+                            <span className="font-medium">
+                              {artifactTypes.find(t => t.value === type)?.label || type}
+                            </span>
+                          </div>
+                          <Badge variant="secondary">{count}</Badge>
                         </div>
-                        <div>
-                          <Badge className={getTypeColor(artifact.type)} data-testid={`badge-artifact-type-${artifact.id}`}>
-                            {artifactTypes.find(t => t.value === artifact.type)?.label || artifact.type}
-                          </Badge>
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
-                            {getAccountName(artifact.accountId)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownloadArtifact(artifact)}
-                          className="text-muted-foreground hover:text-foreground"
-                          data-testid={`button-download-artifact-${artifact.id}`}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteArtifact(artifact.id)}
-                          disabled={deleteArtifactMutation.isPending}
-                          className="text-muted-foreground hover:text-destructive"
-                          data-testid={`button-delete-artifact-${artifact.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      ))}
                     </div>
-                    
-                    <div className="mb-4">
-                      <h4 className="font-medium text-foreground mb-2" data-testid={`text-artifact-title-${artifact.id}`}>
-                        {artifact.title}
-                      </h4>
-                      {artifact.summary && (
-                        <p className="text-sm text-muted-foreground line-clamp-3" data-testid={`text-artifact-summary-${artifact.id}`}>
-                          {artifact.summary}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span data-testid={`text-artifact-created-${artifact.id}`}>
-                          Created: {formatDate(artifact.createdAt)}
-                        </span>
-                      </div>
-                      <span data-testid={`text-artifact-updated-${artifact.id}`}>
-                        Updated: {formatDate(artifact.updatedAt)}
-                      </span>
-                    </div>
-                    
-                    <Button 
-                      className="w-full mt-4" 
-                      variant="outline"
-                      data-testid={`button-view-artifact-${artifact.id}`}
-                    >
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

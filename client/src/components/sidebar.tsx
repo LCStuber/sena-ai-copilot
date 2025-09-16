@@ -6,7 +6,7 @@ import {
   Search, 
   BookOpen, 
   CheckSquare, 
-  Archive,
+  Database,
   Users,
   LogOut
 } from "lucide-react";
@@ -16,7 +16,7 @@ const navigation = [
   { name: "Company Research", href: "/research", icon: Search },
   { name: "Playbook Notes Studio", href: "/playbook", icon: BookOpen },
   { name: "Next Best Actions", href: "/nbas", icon: CheckSquare },
-  { name: "Artifacts", href: "/artifacts", icon: Archive },
+  { name: "CRM Integration", href: "/artifacts", icon: Database },
 ];
 
 export default function Sidebar() {
