@@ -334,6 +334,18 @@ export default function ActiveAccountsPage() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-2 ml-4">
+                    <Link href="/research">
+                      <Button variant="ghost" size="sm" data-testid={`button-research-${account.id}`}>
+                        Research
+                      </Button>
+                    </Link>
+                    <Link href="/playbook-notes">
+                      <Button variant="ghost" size="sm" data-testid={`button-playbook-${account.id}`}>
+                        Playbook
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>
