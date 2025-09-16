@@ -1,10 +1,53 @@
 import OpenAI from "openai";
 import { SENA_PROMPTS } from './sena-system-prompt';
 
-// Using gpt-4 for company research - stable and reliable
+// Using gpt-5 for company research - newest OpenAI model released August 7, 2025
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
+
+// Helper function to create standardized error handling
+function createFallbackResponse(query: string, error: any): CompanySearchResult {
+  // Check if this is a missing/invalid API key
+  const isMissingKey = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+  
+  // Check error type
+  const isQuotaError = error instanceof Error && (
+    (error as any)?.code === 'insufficient_quota'
+  );
+  
+  const isRateLimit = error instanceof Error && (
+    (error as any)?.status === 429 && (error as any)?.code !== 'insufficient_quota'
+  );
+  
+  // Provide specific messaging based on error type
+  let overviewMessage: string;
+  if (isMissingKey) {
+    overviewMessage = `${query} - OpenAI API key not configured. Please add your OPENAI_API_KEY environment variable. Using fallback data below.`;
+  } else if (isQuotaError) {
+    overviewMessage = `${query} - OpenAI API quota exceeded. To enable AI-powered research, please check your OpenAI billing and upgrade your plan at https://platform.openai.com/account/billing. Using fallback data below.`;
+  } else if (isRateLimit) {
+    overviewMessage = `${query} - OpenAI API rate limit reached. Please try again in a few minutes. Using fallback data below.`;
+  } else {
+    overviewMessage = `${query} is a company in the technology sector. Research is temporarily unavailable.`;
+  }
+  
+  return {
+    overview: overviewMessage,
+    pressures: ["Competitive market conditions", "Digital transformation requirements"],
+    objectives: ["Growth expansion", "Technology modernization"],
+    challenges: ["Market competition", "Talent acquisition"],
+    signals: ["Recent product launches", "Hiring trends"],
+    techStack: ["Cloud platforms", "Modern development tools"],
+    sources: [
+      {
+        title: "Company Website",
+        url: `https://${query.toLowerCase().replace(/\s+/g, '')}.com/about`,
+        citation: "[1]"
+      }
+    ]
+  };
+}
 
 export interface CompanySearchResult {
   overview: string;
@@ -34,12 +77,23 @@ Research the company "${query}" and provide:
 5. Relevant technology stack
 6. Credible source citations
 
-Provide 3-6 bullets max for the main content. Include realistic source URLs that would typically contain this information.`;
+Provide 3-6 bullets max for the main content. Include realistic source URLs that would typically contain this information.
+
+Respond with JSON in this exact format:
+{
+  "overview": "string",
+  "pressures": ["string1", "string2"],
+  "objectives": ["string1", "string2"],
+  "challenges": ["string1", "string2"],
+  "signals": ["string1", "string2"],
+  "techStack": ["string1", "string2"],
+  "sources": [{"title": "string", "url": "string", "citation": "string"}]
+}`;
 
   try {
     console.log(`Starting company research for: ${query} (LOB: ${lob})`);
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemMessage },
         { 
@@ -47,9 +101,17 @@ Provide 3-6 bullets max for the main content. Include realistic source URLs that
           content: `Research company: ${query}\nLOB: ${lob}\n\nProvide comprehensive but concise research with credible sources.`
         }
       ],
+      response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    let result;
+    try {
+      result = JSON.parse(response.choices[0].message.content || "{}");
+    } catch (parseError) {
+      console.warn("Failed to parse OpenAI response as JSON, using fallback", parseError);
+      return createFallbackResponse(query, parseError);
+    }
+    
     console.log(`Company research completed for: ${query}`);
     
     // Ensure we have the expected structure
@@ -70,36 +132,7 @@ Provide 3-6 bullets max for the main content. Include realistic source URLs that
     };
   } catch (error) {
     console.error("Error researching company:", error);
-    
-    // Check if this is an OpenAI quota issue
-    const isQuotaError = error instanceof Error && (
-      error.message?.includes("quota") || 
-      error.message?.includes("429") ||
-      (error as any)?.status === 429 ||
-      (error as any)?.code === 'insufficient_quota'
-    );
-    
-    // Provide specific messaging for quota issues
-    const overviewMessage = isQuotaError 
-      ? `${query} - OpenAI API quota exceeded. To enable AI-powered research, please check your OpenAI billing and upgrade your plan at https://platform.openai.com/account/billing. Using fallback data below.`
-      : `${query} is a company in the technology sector. Research is temporarily unavailable.`;
-    
-    // Provide a fallback result instead of throwing an error
-    return {
-      overview: overviewMessage,
-      pressures: ["Competitive market conditions", "Digital transformation requirements"],
-      objectives: ["Growth expansion", "Technology modernization"],
-      challenges: ["Market competition", "Talent acquisition"],
-      signals: ["Recent product launches", "Hiring trends"],
-      techStack: ["Cloud platforms", "Modern development tools"],
-      sources: [
-        {
-          title: "Company Website",
-          url: `https://${query.toLowerCase().replace(/\s+/g, '')}.com/about`,
-          citation: "[1]"
-        }
-      ]
-    };
+    return createFallbackResponse(query, error);
   }
 }
 
@@ -154,18 +187,38 @@ Each passage should be 2-3 sentences and cover different aspects like:
 - Growth and expansion
 - Leadership and culture
 
-Also provide realistic source citations.`;
+Also provide realistic source citations.
+
+Respond with JSON in this exact format:
+{
+  "passages": ["passage1", "passage2"],
+  "sources": [{"title": "string", "url": "string", "citation": "string"}]
+}`;
 
     console.log(`Starting vector search for: ${company}`);
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Company: ${company}\nNumber of passages: ${k}` }
       ],
+      response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    let result;
+    try {
+      result = JSON.parse(response.choices[0].message.content || "{}");
+    } catch (parseError) {
+      console.warn("Failed to parse OpenAI response as JSON in vector search, using fallback", parseError);
+      return {
+        passages: [`${company} operates in the technology sector. Additional research is temporarily unavailable.`],
+        sources: [{
+          title: "Company Website",
+          url: `https://${company.toLowerCase().replace(/\s+/g, '')}.com`,
+          citation: "[1]"
+        }]
+      };
+    }
     
     return {
       passages: result.passages || [],
@@ -173,6 +226,30 @@ Also provide realistic source citations.`;
     };
   } catch (error) {
     console.error("Error in vector search:", error);
-    throw new Error("Failed to perform vector search: " + (error as Error).message);
+    
+    // Check error type and provide appropriate fallback
+    const isMissingKey = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+    const isQuotaError = error instanceof Error && (error as any)?.code === 'insufficient_quota';
+    const isRateLimit = error instanceof Error && (error as any)?.status === 429 && (error as any)?.code !== 'insufficient_quota';
+    
+    let errorMessage: string;
+    if (isMissingKey) {
+      errorMessage = "OpenAI API key not configured. Please add your OPENAI_API_KEY environment variable.";
+    } else if (isQuotaError) {
+      errorMessage = "OpenAI API quota exceeded. Please check your OpenAI billing and upgrade your plan.";
+    } else if (isRateLimit) {
+      errorMessage = "OpenAI API rate limit reached. Please try again in a few minutes.";
+    } else {
+      errorMessage = "Research is temporarily unavailable.";
+    }
+    
+    return {
+      passages: [`${company} operates in the technology sector. ${errorMessage}`],
+      sources: [{
+        title: "Company Website",
+        url: `https://${company.toLowerCase().replace(/\s+/g, '')}.com`,
+        citation: "[1]"
+      }]
+    };
   }
 }
