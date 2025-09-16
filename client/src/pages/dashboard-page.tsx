@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import Sidebar from "@/components/sidebar";
 import TimeZoneSelector from "@/components/time-zone-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   LayoutDashboard,
   TrendingUp,
@@ -12,7 +14,8 @@ import {
   DollarSign,
   Target,
   ChevronRight,
-  Clock
+  Clock,
+  Filter
 } from "lucide-react";
 import { formatDueDate } from "@/lib/time-utils";
 
@@ -43,6 +46,7 @@ interface NextBestAction {
 export default function DashboardPage() {
   const [userTimeZone, setUserTimeZone] = useState("America/New_York");
   const [accountTimeZone, setAccountTimeZone] = useState<string | undefined>();
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   // Auto-detect user timezone
   useEffect(() => {
@@ -57,6 +61,11 @@ export default function DashboardPage() {
   const { data: accounts = [], isLoading: accountsLoading } = useQuery<Account[]>({
     queryKey: ["/api/accounts"],
   });
+
+  // Filter accounts based on priority filter
+  const filteredAccounts = priorityFilter && priorityFilter !== "all"
+    ? accounts.filter(account => account.priority === priorityFilter)
+    : accounts;
 
   const { data: nbas = [], isLoading: nbasLoading } = useQuery<NextBestAction[]>({
     queryKey: ["/api/nbas"],
@@ -160,10 +169,28 @@ export default function DashboardPage() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle data-testid="text-active-accounts-title">Active Accounts</CardTitle>
-                  <Button variant="ghost" size="sm" data-testid="button-view-all-accounts">
-                    View All
-                  </Button>
+                  <div className="flex items-center space-x-4">
+                    <CardTitle data-testid="text-active-accounts-title">Active Accounts</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                        <SelectTrigger className="w-40" data-testid="select-priority-filter">
+                          <SelectValue placeholder="All Priorities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Priorities</SelectItem>
+                          <SelectItem value="High">High Priority</SelectItem>
+                          <SelectItem value="Medium">Medium Priority</SelectItem>
+                          <SelectItem value="Low">Low Priority</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Link href="/research">
+                    <Button variant="ghost" size="sm" data-testid="button-view-all-accounts">
+                      View All
+                    </Button>
+                  </Link>
                 </CardHeader>
                 <CardContent>
                   {accountsLoading ? (
@@ -178,14 +205,18 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </div>
-                  ) : accounts.length === 0 ? (
+                  ) : filteredAccounts.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-muted-foreground" data-testid="text-no-accounts">No active accounts found</p>
-                      <p className="text-sm text-muted-foreground mt-2">Create your first account to get started</p>
+                      <p className="text-muted-foreground" data-testid="text-no-accounts">
+                        {priorityFilter ? `No ${priorityFilter.toLowerCase()} priority accounts found` : 'No active accounts found'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {priorityFilter ? 'Try changing the priority filter' : 'Create your first account to get started'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {accounts.slice(0, 3).map((account) => (
+                      {filteredAccounts.slice(0, 5).map((account) => (
                         <div key={account.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-testid={`account-item-${account.id}`}>
                           <div className="flex items-center space-x-4">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -206,9 +237,11 @@ export default function DashboardPage() {
                             <Badge className={getPriorityColor(account.priority)}>
                               {account.priority} Priority
                             </Badge>
-                            <Button variant="ghost" size="sm" data-testid={`button-open-account-${account.id}`}>
-                              <ChevronRight className="w-4 h-4" />
-                            </Button>
+                            <Link href="/research">
+                              <Button variant="ghost" size="sm" data-testid={`button-open-account-${account.id}`}>
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       ))}
@@ -263,9 +296,11 @@ export default function DashboardPage() {
                                 Due: {formatDueDate(new Date(nba.dueDate), userTimeZone)}
                               </p>
                             </div>
-                            <Button variant="ghost" size="sm" data-testid={`button-complete-nba-${nba.id}`}>
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
+                            <Link href="/nbas">
+                              <Button variant="ghost" size="sm" data-testid={`button-complete-nba-${nba.id}`}>
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       ))}
@@ -273,9 +308,11 @@ export default function DashboardPage() {
                   )}
                   
                   {priorityNBAs.length > 0 && (
-                    <Button variant="ghost" className="w-full mt-4" data-testid="button-view-all-nbas">
-                      View All NBAs
-                    </Button>
+                    <Link href="/nbas">
+                      <Button variant="ghost" className="w-full mt-4" data-testid="button-view-all-nbas">
+                        View All NBAs
+                      </Button>
+                    </Link>
                   )}
                 </CardContent>
               </Card>
