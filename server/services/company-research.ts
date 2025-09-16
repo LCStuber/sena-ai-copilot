@@ -71,9 +71,22 @@ Provide 3-6 bullets max for the main content. Include realistic source URLs that
   } catch (error) {
     console.error("Error researching company:", error);
     
+    // Check if this is an OpenAI quota issue
+    const isQuotaError = error instanceof Error && (
+      error.message?.includes("quota") || 
+      error.message?.includes("429") ||
+      (error as any)?.status === 429 ||
+      (error as any)?.code === 'insufficient_quota'
+    );
+    
+    // Provide specific messaging for quota issues
+    const overviewMessage = isQuotaError 
+      ? `${query} - OpenAI API quota exceeded. To enable AI-powered research, please check your OpenAI billing and upgrade your plan at https://platform.openai.com/account/billing. Using fallback data below.`
+      : `${query} is a company in the technology sector. Research is temporarily unavailable.`;
+    
     // Provide a fallback result instead of throwing an error
     return {
-      overview: `${query} is a company in the technology sector. Research is temporarily unavailable.`,
+      overview: overviewMessage,
       pressures: ["Competitive market conditions", "Digital transformation requirements"],
       objectives: ["Growth expansion", "Technology modernization"],
       challenges: ["Market competition", "Talent acquisition"],
