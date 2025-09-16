@@ -240,7 +240,6 @@ ${companyContext ? `Company Context: ${companyContext}` : ''}`;
         { role: "system", content: systemMessage + "\n\nRespond with valid JSON only." },
         { role: "user", content: `${prompt}\n\nTranscript:\n${transcript}` }
       ],
-      temperature: 0.3,
       response_format: { type: "json_object" }
     });
 
@@ -315,7 +314,6 @@ Example format:
         { role: "system", content: systemMessage },
         { role: "user", content: `Generate NBAs based on this context:\n\n${JSON.stringify(contextData, null, 2)}` }
       ],
-      temperature: 0.4,
       response_format: { type: "json_object" }
     });
 
@@ -371,7 +369,6 @@ Framework Notes:
 ${JSON.stringify(frameworkNotes, null, 2)}`
         }
       ],
-      temperature: 0.6,
     });
 
     return response.choices[0].message.content || "";

@@ -58,7 +58,6 @@ export async function classifyIntent(
         { role: "system", content: systemMessage },
         { role: "user", content: `${message}${conversationContext}` }
       ],
-      temperature: 0.1,
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
@@ -413,7 +412,6 @@ async function handleGeneralQuestion(params: GeneralQuestionParams) {
         { role: "system", content: systemMessage },
         { role: "user", content: validatedParams.question }
       ],
-      temperature: 0.6,
     });
 
     const answer = response.choices[0].message.content || "I'm not sure how to help with that. Could you please be more specific?";
