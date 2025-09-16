@@ -334,21 +334,6 @@ export default function ActiveAccountsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 ml-4">
-                    <Link href="/research">
-                      <Button variant="ghost" size="sm" data-testid={`button-research-${account.id}`}>
-                        Research
-                      </Button>
-                    </Link>
-                    <Link href="/playbook">
-                      <Button variant="ghost" size="sm" data-testid={`button-playbook-${account.id}`}>
-                        Playbook
-                      </Button>
-                    </Link>
-                    <Button variant="ghost" size="sm" data-testid={`button-view-details-${account.id}`}>
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
