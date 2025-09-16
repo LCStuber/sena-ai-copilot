@@ -1,10 +1,134 @@
 import OpenAI from "openai";
 import { SENA_PROMPTS } from './sena-system-prompt';
 
-// Using gpt-4 for stable and reliable AI generation
+// Using gpt-5 for latest AI generation - newest OpenAI model released August 7, 2025
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
+
+// Helper function to create fallback responses for framework notes
+function createFrameworkNotesFallback(framework: string, error: any): any {
+  // Check if this is a missing/invalid API key
+  const isMissingKey = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+  
+  // Check error type
+  const isQuotaError = error instanceof Error && (
+    (error as any)?.code === 'insufficient_quota'
+  );
+  
+  const isRateLimit = error instanceof Error && (
+    (error as any)?.status === 429 && (error as any)?.code !== 'insufficient_quota'
+  );
+  
+  let errorNote: string;
+  if (isMissingKey) {
+    errorNote = "OpenAI API key not configured. Please add your OPENAI_API_KEY environment variable.";
+  } else if (isQuotaError) {
+    errorNote = "OpenAI API quota exceeded. Please check your OpenAI billing and upgrade your plan at https://platform.openai.com/account/billing.";
+  } else if (isRateLimit) {
+    errorNote = "OpenAI API rate limit reached. Please try again in a few minutes.";
+  } else {
+    errorNote = "AI-powered analysis is temporarily unavailable.";
+  }
+  
+  // Return appropriate fallback based on framework
+  const fallbacks = {
+    "Qual-LSS": {
+      date: "Unknown (AI unavailable)",
+      accountName: "Unknown (AI unavailable)", 
+      attendees: ["Unknown (AI unavailable)"],
+      salesOrgStructure: "Unknown (AI unavailable)",
+      idealBuyerPersonas: "Unknown (AI unavailable)",
+      totalAddressableMarket: "Unknown (AI unavailable)",
+      crm: "Unknown (AI unavailable)",
+      otherSalesSystemsTools: "Unknown (AI unavailable)",
+      salesProcess: "Unknown (AI unavailable)",
+      averageDealSize: "Unknown (AI unavailable)",
+      averageSalesCycle: "Unknown (AI unavailable)",
+      salesNavigatorUseCases: "Unknown (AI unavailable)",
+      errorNote
+    },
+    "Qual-LTS": {
+      overallImpressionOfOpportunity: "Unknown (AI unavailable)",
+      firstImpressionsOfPOCLead: "Unknown (AI unavailable)",
+      generalCompanyInfo: "Unknown (AI unavailable)",
+      numberOfEmployees: "Unknown (AI unavailable)",
+      knowledgeAboutLinkedIn: "Unknown (AI unavailable)",
+      errorNote
+    },
+    "VEF": {
+      customersPressures: "Unknown (AI unavailable)",
+      customersObjectives: "Unknown (AI unavailable)",
+      customersChallenges: "Unknown (AI unavailable)",
+      linkedInSolutions: "Unknown (AI unavailable)",
+      linkedInExperience: "Unknown (AI unavailable)",
+      linkedInUniqueValue: "Unknown (AI unavailable)",
+      errorNote
+    },
+    "MEDDPICC": {
+      metrics: "Unknown (AI unavailable)",
+      economicBuyer: "Unknown (AI unavailable)",
+      decisionCriteria: "Unknown (AI unavailable)",
+      decisionProcess: "Unknown (AI unavailable)",
+      paperProcess: "Unknown (AI unavailable)",
+      identifiedPain: "Unknown (AI unavailable)",
+      champion: "Unknown (AI unavailable)",
+      competition: "Unknown (AI unavailable)",
+      errorNote
+    },
+    "BANT": {
+      budget: "Unknown (AI unavailable)",
+      authority: "Unknown (AI unavailable)",
+      need: "Unknown (AI unavailable)",
+      timeline: "Unknown (AI unavailable)",
+      errorNote
+    },
+    "LicenseDemandPlan": {
+      customersProgramTeam: "Unknown (AI unavailable)",
+      customersMeasurementGoals: "Unknown (AI unavailable)",
+      purchasedLicenseDistributionPlan: "Unknown (AI unavailable)",
+      errorNote
+    }
+  };
+  
+  return fallbacks[framework as keyof typeof fallbacks] || {
+    error: `Unknown framework: ${framework}`,
+    errorNote
+  };
+}
+
+// Helper function to create fallback NBAs
+function createNBAsFallback(error: any): any[] {
+  // Check error type
+  const isMissingKey = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+  const isQuotaError = error instanceof Error && (error as any)?.code === 'insufficient_quota';
+  const isRateLimit = error instanceof Error && (error as any)?.status === 429 && (error as any)?.code !== 'insufficient_quota';
+  
+  let errorMessage: string;
+  if (isMissingKey) {
+    errorMessage = "OpenAI API key not configured. Please add your OPENAI_API_KEY environment variable.";
+  } else if (isQuotaError) {
+    errorMessage = "OpenAI API quota exceeded. Please check your OpenAI billing and upgrade your plan.";
+  } else if (isRateLimit) {
+    errorMessage = "OpenAI API rate limit reached. Please try again in a few minutes.";
+  } else {
+    errorMessage = "AI-powered NBA generation is temporarily unavailable.";
+  }
+  
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  return [
+    {
+      title: "Follow up on meeting discussion",
+      description: `Review meeting notes and follow up on key discussion points. ${errorMessage}`,
+      evidence: "Standard follow-up practice",
+      priority: "Medium",
+      dueDate: tomorrow.toISOString(),
+      source: "Meeting Transcript"
+    }
+  ];
+}
 
 export interface FrameworkNotesInput {
   transcript: string;
@@ -111,18 +235,27 @@ ${companyContext ? `Company Context: ${companyContext}` : ''}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: systemMessage },
+        { role: "system", content: systemMessage + "\n\nRespond with valid JSON only." },
         { role: "user", content: `${prompt}\n\nTranscript:\n${transcript}` }
       ],
       temperature: 0.3,
+      response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content || "{}");
+    let result;
+    try {
+      result = JSON.parse(response.choices[0].message.content || "{}");
+    } catch (parseError) {
+      console.warn("Failed to parse framework notes response as JSON, using fallback", parseError);
+      return createFrameworkNotesFallback(framework, parseError);
+    }
+    
+    return result;
   } catch (error) {
     console.error("Error generating framework notes:", error);
-    throw new Error("Failed to generate framework notes: " + (error as Error).message);
+    return createFrameworkNotesFallback(framework, error);
   }
 }
 
@@ -177,19 +310,27 @@ Example format:
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Generate NBAs based on this context:\n\n${JSON.stringify(contextData, null, 2)}` }
       ],
       temperature: 0.4,
+      response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    let result;
+    try {
+      result = JSON.parse(response.choices[0].message.content || "{}");
+    } catch (parseError) {
+      console.warn("Failed to parse NBAs response as JSON, using fallback", parseError);
+      return createNBAsFallback(parseError);
+    }
+    
     return result.nbas || [];
   } catch (error) {
     console.error("Error generating NBAs:", error);
-    throw new Error("Failed to generate NBAs: " + (error as Error).message);
+    return createNBAsFallback(error);
   }
 }
 
@@ -214,7 +355,7 @@ Provide specific examples from the transcript with timestamps when possible. Be 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5", // newest OpenAI model released August 7, 2025. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemMessage },
         { 
@@ -236,6 +377,23 @@ ${JSON.stringify(frameworkNotes, null, 2)}`
     return response.choices[0].message.content || "";
   } catch (error) {
     console.error("Error generating coaching guidance:", error);
-    throw new Error("Failed to generate coaching guidance: " + (error as Error).message);
+    
+    // Check error type and provide appropriate fallback
+    const isMissingKey = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+    const isQuotaError = error instanceof Error && (error as any)?.code === 'insufficient_quota';
+    const isRateLimit = error instanceof Error && (error as any)?.status === 429 && (error as any)?.code !== 'insufficient_quota';
+    
+    let errorMessage: string;
+    if (isMissingKey) {
+      errorMessage = "OpenAI API key not configured. Please add your OPENAI_API_KEY environment variable to enable AI-powered coaching guidance.";
+    } else if (isQuotaError) {
+      errorMessage = "OpenAI API quota exceeded. Please check your OpenAI billing and upgrade your plan at https://platform.openai.com/account/billing to enable AI-powered coaching guidance.";
+    } else if (isRateLimit) {
+      errorMessage = "OpenAI API rate limit reached. Please try again in a few minutes to generate coaching guidance.";
+    } else {
+      errorMessage = "AI-powered coaching guidance is temporarily unavailable. Please try again later.";
+    }
+    
+    return `**Coaching Guidance Unavailable**\n\n${errorMessage}\n\nIn the meantime, consider reviewing the transcript manually for:\n- Discovery question quality\n- Framework application\n- Next steps and follow-up opportunities\n- ${lob}-specific best practices`;
   }
 }
