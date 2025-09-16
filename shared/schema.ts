@@ -281,3 +281,96 @@ export type InsertNextBestAction = z.infer<typeof insertNextBestActionSchema>;
 
 export type Artifact = typeof artifacts.$inferSelect;
 export type InsertArtifact = z.infer<typeof insertArtifactSchema>;
+
+// Agent-related schemas and types
+export const agentIntentSchema = z.enum([
+  "company_research",
+  "transcript_analysis", 
+  "meeting_prep",
+  "list_nbas",
+  "complete_nba",
+  "list_artifacts",
+  "general_question",
+  "clarification_needed"
+]);
+
+export const companyResearchParamsSchema = z.object({
+  companyName: z.string().min(1),
+  lob: z.enum(["LTS", "LSS"]).optional(),
+  accountId: z.string().uuid().optional(),
+});
+
+export const transcriptAnalysisParamsSchema = z.object({
+  transcript: z.string().min(1),
+  frameworks: z.array(z.enum(["Qual-LTS", "Qual-LSS", "VEF", "MEDDPICC", "BANT", "LicenseDemandPlan"])),
+  accountId: z.string().uuid().optional(),
+  accountName: z.string().optional(),
+});
+
+export const meetingPrepParamsSchema = z.object({
+  accountId: z.string().uuid(),
+  frameworks: z.array(z.enum(["Qual-LTS", "Qual-LSS", "VEF", "MEDDPICC", "BANT", "LicenseDemandPlan"])),
+});
+
+export const listNbasParamsSchema = z.object({
+  accountId: z.string().uuid().optional(),
+  status: z.enum(["Open", "In Progress", "Completed", "Overdue"]).optional(),
+});
+
+export const completeNbaParamsSchema = z.object({
+  nbaId: z.string().uuid(),
+});
+
+export const listArtifactsParamsSchema = z.object({
+  accountId: z.string().uuid().optional(),
+  type: z.enum(["CompanyResearch", "Qual-LTS", "Qual-LSS", "VEF", "MEDDPICC", "BANT", "LicenseDemandPlan"]).optional(),
+});
+
+export const generalQuestionParamsSchema = z.object({
+  question: z.string().min(1),
+});
+
+export const agentMessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  timestamp: z.string().datetime(),
+  actionResults: z.array(z.object({
+    type: z.string(),
+    title: z.string(),
+    description: z.string().optional(),
+    link: z.string().optional(),
+    data: z.any().optional(),
+  })).optional(),
+});
+
+export const agentChatRequestSchema = z.object({
+  message: z.string().min(1),
+  conversationHistory: z.array(agentMessageSchema).optional(),
+});
+
+export const agentChatResponseSchema = z.object({
+  message: z.string(),
+  intent: agentIntentSchema,
+  actionResults: z.array(z.object({
+    type: z.string(),
+    title: z.string(),
+    description: z.string().optional(),
+    link: z.string().optional(),
+    data: z.any().optional(),
+  })).optional(),
+  needsConfirmation: z.boolean().optional(),
+  suggestedFollowUps: z.array(z.string()).optional(),
+});
+
+export type AgentIntent = z.infer<typeof agentIntentSchema>;
+export type CompanyResearchParams = z.infer<typeof companyResearchParamsSchema>;
+export type TranscriptAnalysisParams = z.infer<typeof transcriptAnalysisParamsSchema>;
+export type MeetingPrepParams = z.infer<typeof meetingPrepParamsSchema>;
+export type ListNbasParams = z.infer<typeof listNbasParamsSchema>;
+export type CompleteNbaParams = z.infer<typeof completeNbaParamsSchema>;
+export type ListArtifactsParams = z.infer<typeof listArtifactsParamsSchema>;
+export type GeneralQuestionParams = z.infer<typeof generalQuestionParamsSchema>;
+export type AgentMessage = z.infer<typeof agentMessageSchema>;
+export type AgentChatRequest = z.infer<typeof agentChatRequestSchema>;
+export type AgentChatResponse = z.infer<typeof agentChatResponseSchema>;
