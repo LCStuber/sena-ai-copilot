@@ -291,7 +291,7 @@ export default function PlaybookNotesPage() {
   };
 
   const handleContentChange = (key: string, newValue: string) => {
-    setEditedContent(prev => ({
+    setEditedContent((prev: any) => ({
       ...prev,
       [key]: newValue,
     }));

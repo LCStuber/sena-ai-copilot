@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ export function ChatWidget({ className }: ChatWidgetProps) {
   const [showImprovement, setShowImprovement] = useState(false);
   const [improvementSuggestion, setImprovementSuggestion] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -121,6 +122,18 @@ export function ChatWidget({ className }: ChatWidgetProps) {
       handleSendMessage();
     }
   };
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+    }
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputMessage]);
 
   const handleImprovementSubmit = () => {
     if (!improvementSuggestion.trim()) return;
@@ -382,15 +395,16 @@ export function ChatWidget({ className }: ChatWidgetProps) {
             {/* Input Area */}
             <div className="p-4">
               <div className="flex gap-2">
-                <Input
+                <Textarea
                   ref={inputRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask me anything about your sales process..."
-                  className="flex-1 text-sm"
+                  placeholder="Ask me anything about your sales process... (Enter to send, Shift+Enter for new line)"
+                  className="flex-1 text-sm resize-none overflow-hidden min-h-[40px] max-h-[120px]"
                   disabled={chatMutation.isPending}
-                  data-testid="input-chat-message"
+                  data-testid="textarea-chat-message"
+                  rows={1}
                 />
                 <Button
                   onClick={handleSendMessage}
