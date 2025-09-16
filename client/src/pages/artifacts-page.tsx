@@ -249,7 +249,7 @@ export default function HistoricalNotesPage() {
     });
   };
 
-  const formatContent = (content: any) => {
+  const formatContent = (content: any): string => {
     if (typeof content === 'string') {
       return content;
     }

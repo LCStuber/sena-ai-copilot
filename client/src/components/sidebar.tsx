@@ -17,6 +17,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Company Research", href: "/research", icon: Search },
+  { name: "Active Accounts", href: "/accounts", icon: Users },
   { name: "Playbook Notes Studio", href: "/playbook-notes", icon: BookOpen },
   { name: "Next Best Actions", href: "/nbas", icon: CheckSquare },
   { name: "Historical Notes", href: "/artifacts", icon: Database },
