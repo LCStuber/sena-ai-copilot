@@ -2,6 +2,10 @@
 
 SENA is a comprehensive sales enablement platform built with React/TypeScript frontend and Express.js backend. The application provides sales development representatives (SDRs) with AI-powered tools for company research, call transcript analysis using various sales frameworks, and automated next-best-action recommendations.
 
+* [Slides Deck](https://microsoft-my.sharepoint.com/:p:/g/personal/luberkov_linkedin_biz/EWEPuet-0vJDgCGnQyheH80BAXL7fYbwJob5E375rEQnXQ?e=2l6n7r)
+* [Innovation Studio](https://innovationstudio.microsoft.com/hackathons/GTM-AI-Hack-Week-2025/project/108943)
+
+
 ## 🚀 Features
 
 ### Core Capabilities
