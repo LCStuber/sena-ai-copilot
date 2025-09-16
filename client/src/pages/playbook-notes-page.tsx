@@ -52,7 +52,9 @@ export default function PlaybookNotesPage() {
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [accountMode, setAccountMode] = useState<"select" | "create">("select");
   const [newCompanyName, setNewCompanyName] = useState("");
-  const [lob, setLob] = useState<"LTS" | "LSS" | "">("");
+  const [lob, setLob] = useState<"LTS" | "LSS" | "">("")
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<any>({});;
   const [userTimeZone] = useState("America/New_York");
   const [processResults, setProcessResults] = useState<ProcessTranscriptResult | null>(null);
   const [showCoaching, setShowCoaching] = useState(false);
@@ -137,6 +139,42 @@ export default function PlaybookNotesPage() {
     onError: (error: Error) => {
       toast({
         title: "Coaching Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateFrameworkNotesMutation = useMutation({
+    mutationFn: async (data: { id: string; content: any }) => {
+      const response = await apiRequest("PATCH", `/api/framework-notes/${data.id}`, {
+        content: data.content,
+      });
+      return response.json();
+    },
+    onSuccess: (updatedNote) => {
+      // Update the processResults with the new content
+      setProcessResults(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          frameworkNotes: prev.frameworkNotes.map(note => 
+            note.id === updatedNote.id 
+              ? { ...note, content: updatedNote.content }
+              : note
+          )
+        };
+      });
+      setEditingNoteId(null);
+      setEditedContent({});
+      toast({
+        title: "Notes Updated",
+        description: "Framework notes have been saved successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -235,19 +273,88 @@ export default function PlaybookNotesPage() {
     return uniqueSpeakers.size;
   };
 
-  const renderFrameworkContent = (framework: string, content: any) => {
+  const handleEditNote = (noteId: string, content: any) => {
+    setEditingNoteId(noteId);
+    setEditedContent(content);
+  };
+
+  const handleSaveNote = (noteId: string) => {
+    updateFrameworkNotesMutation.mutate({
+      id: noteId,
+      content: editedContent,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditedContent({});
+  };
+
+  const handleContentChange = (key: string, newValue: string) => {
+    setEditedContent(prev => ({
+      ...prev,
+      [key]: newValue,
+    }));
+  };
+
+  const renderFrameworkContent = (framework: string, content: any, noteId: string) => {
     if (!content || typeof content !== 'object') return null;
+
+    const isEditing = editingNoteId === noteId;
+    const displayContent = isEditing ? editedContent : content;
 
     return (
       <div className="space-y-3 text-sm">
-        {Object.entries(content).map(([key, value]) => (
+        {Object.entries(displayContent).map(([key, value]) => (
           <div key={key}>
             <strong className="text-foreground">{key.replace(/([A-Z])/g, ' $1').trim()}:</strong>{" "}
-            <span className="text-muted-foreground">
-              {Array.isArray(value) ? value.join(", ") : String(value)}
-            </span>
+            {isEditing ? (
+              <div className="mt-2">
+                <Textarea
+                  value={Array.isArray(value) ? value.join(", ") : String(value)}
+                  onChange={(e) => handleContentChange(key, e.target.value)}
+                  className="min-h-[80px] text-sm"
+                  data-testid={`textarea-edit-${framework}-${key}`}
+                />
+              </div>
+            ) : (
+              <span className="text-muted-foreground">
+                {Array.isArray(value) ? value.join(", ") : String(value)}
+              </span>
+            )}
           </div>
         ))}
+        {isEditing && (
+          <div className="flex space-x-2 mt-4 pt-4 border-t">
+            <Button 
+              size="sm" 
+              onClick={() => handleSaveNote(noteId)}
+              disabled={updateFrameworkNotesMutation.isPending}
+              data-testid={`button-save-changes-${framework}`}
+            >
+              {updateFrameworkNotesMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCancelEdit}
+              disabled={updateFrameworkNotesMutation.isPending}
+              data-testid={`button-cancel-edit-${framework}`}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
@@ -458,19 +565,22 @@ export default function PlaybookNotesPage() {
                         <CardTitle data-testid={`text-framework-title-${note.framework}`}>
                           {note.framework} Notes
                         </CardTitle>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" data-testid={`button-edit-${note.framework}`}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button size="sm" data-testid={`button-save-${note.framework}`}>
-                            <Save className="w-4 h-4 mr-2" />
-                            Save
-                          </Button>
-                        </div>
+                        {editingNoteId !== note.id && (
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEditNote(note.id, note.content)}
+                              data-testid={`button-edit-${note.framework}`}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                          </div>
+                        )}
                       </CardHeader>
                       <CardContent>
-                        {renderFrameworkContent(note.framework, note.content)}
+                        {renderFrameworkContent(note.framework, note.content, note.id)}
                       </CardContent>
                     </Card>
                   </TabsContent>
