@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(account);
     } catch (error) {
       console.error("Error creating account:", error);
-      res.status(400).json({ message: "Failed to create account" });
+      res.status(400).json({ message: "Failed to create account" + error });
     }
   });
 
