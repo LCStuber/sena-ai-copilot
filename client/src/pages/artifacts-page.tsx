@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   FileText, 
   Search, 
@@ -17,7 +18,9 @@ import {
   Database,
   Settings,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  X,
+  ChevronLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +55,9 @@ const artifactTypes = [
 export default function CRMIntegrationPage() {
   const [exportFormat, setExportFormat] = useState("docx");
   const [d365Status, setD365Status] = useState("disconnected"); // disconnected, connecting, connected
+  const [selectedArtifacts, setSelectedArtifacts] = useState<string[]>([]);
+  const [showDetailedView, setShowDetailedView] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>("");
   const { toast } = useToast();
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -94,7 +100,10 @@ export default function CRMIntegrationPage() {
     }
   };
 
-  const handleExportData = async (format: string) => {
+  const handleExportData = async (format: string, selectedIds?: string[]) => {
+    const artifactsToExport = selectedIds 
+      ? artifacts.filter(artifact => selectedIds.includes(artifact.id))
+      : artifacts;
     try {
       if (format === 'docx') {
         // Convert all artifacts to DOCX format
@@ -108,7 +117,7 @@ export default function CRMIntegrationPage() {
               <h1>SENA Sales Data Export</h1>
               <p><strong>Export Date:</strong> ${new Date().toLocaleDateString()}</p>
               <hr>
-              ${artifacts.map(artifact => `
+              ${artifactsToExport.map(artifact => `
                 <div style="margin-bottom: 30px; page-break-inside: avoid;">
                   <h2>${artifact.title}</h2>
                   <p><strong>Type:</strong> ${artifact.type}</p>
@@ -156,7 +165,7 @@ export default function CRMIntegrationPage() {
         // Fallback to JSON export
         const exportData = {
           exportDate: new Date().toISOString(),
-          artifacts: artifacts,
+          artifacts: artifactsToExport,
           accounts: accounts
         };
         
@@ -225,11 +234,11 @@ export default function CRMIntegrationPage() {
         <div>
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground" data-testid="text-crm-title">
-              CRM Integration
+            <h1 className="text-3xl font-bold text-foreground" data-testid="text-integrations-title">
+              Integrations & Export
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Connect and export your sales data to external CRM systems
+              Connect to external systems and export your sales data in various formats
             </p>
           </div>
 
@@ -415,7 +424,15 @@ export default function CRMIntegrationPage() {
                           return acc;
                         }, {} as Record<string, number>)
                       ).map(([type, count]) => (
-                        <div key={type} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div 
+                          key={type} 
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setSelectedType(type);
+                            setShowDetailedView(true);
+                          }}
+                          data-testid={`card-artifact-type-${type.toLowerCase()}`}
+                        >
                           <div className="flex items-center gap-2">
                             {getTypeIcon(type)}
                             <span className="font-medium">
@@ -431,6 +448,118 @@ export default function CRMIntegrationPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Detailed Selection View */}
+        {showDetailedView && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-xl">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <ChevronLeft className="w-5 h-5" />
+                  Select {artifactTypes.find(t => t.value === selectedType)?.label || selectedType} for Export
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetailedView(false)}
+                  data-testid="button-close-detailed-view"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
+                {artifacts.filter(artifact => artifact.type === selectedType).length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No {selectedType} artifacts available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm text-muted-foreground">
+                        Select specific {artifactTypes.find(t => t.value === selectedType)?.label || selectedType} to export:
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const typeArtifacts = artifacts.filter(a => a.type === selectedType);
+                          const allSelected = typeArtifacts.every(a => selectedArtifacts.includes(a.id));
+                          if (allSelected) {
+                            setSelectedArtifacts(prev => prev.filter(id => !typeArtifacts.map(a => a.id).includes(id)));
+                          } else {
+                            setSelectedArtifacts(prev => Array.from(new Set([...prev, ...typeArtifacts.map(a => a.id)])));
+                          }
+                        }}
+                        data-testid="button-select-all-type"
+                      >
+                        {artifacts.filter(a => a.type === selectedType).every(a => selectedArtifacts.includes(a.id)) ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    </div>
+
+                    {artifacts.filter(artifact => artifact.type === selectedType).map((artifact) => (
+                      <div key={artifact.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                        <Checkbox
+                          checked={selectedArtifacts.includes(artifact.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedArtifacts(prev => [...prev, artifact.id]);
+                            } else {
+                              setSelectedArtifacts(prev => prev.filter(id => id !== artifact.id));
+                            }
+                          }}
+                          data-testid={`checkbox-artifact-${artifact.id}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm">{artifact.title}</h3>
+                          {artifact.summary && (
+                            <p className="text-xs text-muted-foreground mt-1">{artifact.summary}</p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span>Created: {new Date(artifact.createdAt).toLocaleDateString()}</span>
+                            {accounts.find(acc => acc.id === artifact.accountId)?.name && (
+                              <span>Account: {accounts.find(acc => acc.id === artifact.accountId)?.name}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between p-4 border-t bg-muted/20">
+                <p className="text-sm text-muted-foreground">
+                  {selectedArtifacts.filter(id => artifacts.find(a => a.id === id && a.type === selectedType)).length} of{" "}
+                  {artifacts.filter(a => a.type === selectedType).length} selected
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDetailedView(false)}
+                    data-testid="button-cancel-selection"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const selectedIds = selectedArtifacts.filter(id => artifacts.find(a => a.id === id && a.type === selectedType));
+                      if (selectedIds.length > 0) {
+                        handleExportData(exportFormat, selectedIds);
+                      }
+                      setShowDetailedView(false);
+                    }}
+                    disabled={selectedArtifacts.filter(id => artifacts.find(a => a.id === id && a.type === selectedType)).length === 0}
+                    data-testid="button-export-selected"
+                  >
+                    Export Selected ({selectedArtifacts.filter(id => artifacts.find(a => a.id === id && a.type === selectedType)).length})
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
   );
 }
