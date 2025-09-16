@@ -259,7 +259,23 @@ export default function HistoricalNotesPage() {
       return Object.entries(content)
         .map(([key, value]) => {
           const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
-          const formattedValue = Array.isArray(value) ? value.join(', ') : String(value);
+          let formattedValue;
+          
+          if (Array.isArray(value)) {
+            // Handle arrays - recursively convert each item
+            formattedValue = value.map(item => 
+              typeof item === 'object' && item !== null 
+                ? formatContent(item) 
+                : String(item)
+            ).join(', ');
+          } else if (typeof value === 'object' && value !== null) {
+            // Handle nested objects - recursively convert
+            formattedValue = formatContent(value);
+          } else {
+            // Handle primitives
+            formattedValue = String(value);
+          }
+          
           return `${formattedKey}: ${formattedValue}`;
         })
         .join('\n\n');
