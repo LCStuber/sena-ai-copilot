@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Using gpt-4 for stable and reliable AI generation
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
@@ -110,16 +110,17 @@ Generate framework-specific notes from the sales call transcript. Use ONLY infor
 
 ${companyContext ? `Company Context: ${companyContext}` : ''}
 
-Respond with a JSON object containing the extracted information exactly as requested. Use "Unknown (not mentioned)" for any field where information is not available in the transcript.`;
+IMPORTANT: Respond with a valid JSON object containing the extracted information exactly as requested. Use "Unknown (not mentioned)" for any field where information is not available in the transcript. 
+
+Your response must be valid JSON that can be parsed with JSON.parse().`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `${prompt}\n\nTranscript:\n${transcript}` }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.3,
     });
 
@@ -155,7 +156,21 @@ For each NBA, provide:
 
 Focus on the SDR workflow and ${lob} sales process. Prioritize based on sales stage and opportunity signals.
 
-Respond with JSON array of NBA objects.`;
+IMPORTANT: Respond with a valid JSON object that contains an "nbas" array. Your response must be valid JSON that can be parsed with JSON.parse().
+
+Example format:
+{
+  "nbas": [
+    {
+      "title": "Action title",
+      "description": "Action description", 
+      "evidence": "Supporting evidence",
+      "priority": "High",
+      "dueDate": "2025-09-16T12:00:00-07:00",
+      "source": "Meeting Transcript"
+    }
+  ]
+}`;
 
   const contextData = {
     transcript: transcript || "No transcript provided",
@@ -167,12 +182,11 @@ Respond with JSON array of NBA objects.`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Generate NBAs based on this context:\n\n${JSON.stringify(contextData, null, 2)}` }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.4,
     });
 
@@ -205,7 +219,7 @@ Provide specific examples from the transcript with timestamps when possible. Be 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4",
       messages: [
         { role: "system", content: systemMessage },
         { 
