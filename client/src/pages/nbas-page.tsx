@@ -7,13 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   CheckCircle, 
   Edit, 
   Trash2, 
   Clock,
   AlertCircle,
-  Filter
+  Filter,
+  Save,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDueDate } from "@/lib/time-utils";
@@ -43,6 +49,15 @@ export default function NbasPage() {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("Open");
   const [userTimeZone] = useState("America/New_York");
+  const [editingNBA, setEditingNBA] = useState<NextBestAction | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    evidence: "",
+    priority: "Medium" as "High" | "Medium" | "Low",
+    status: "Open" as "Open" | "In Progress" | "Completed" | "Overdue",
+    dueDate: ""
+  });
   const { toast } = useToast();
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -117,6 +132,66 @@ export default function NbasPage() {
     if (confirm("Are you sure you want to delete this NBA?")) {
       deleteNBAMutation.mutate(id);
     }
+  };
+
+  const handleEditNBA = (nba: NextBestAction) => {
+    setEditingNBA(nba);
+    setEditForm({
+      title: nba.title,
+      description: nba.description || "",
+      evidence: nba.evidence || "",
+      priority: nba.priority,
+      status: nba.status,
+      dueDate: nba.dueDate.slice(0, 16) // Format for datetime-local input
+    });
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditingNBA(null);
+    setEditForm({
+      title: "",
+      description: "",
+      evidence: "",
+      priority: "Medium",
+      status: "Open",
+      dueDate: ""
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingNBA) return;
+    
+    if (!editForm.title.trim()) {
+      toast({
+        title: "Missing Title",
+        description: "Please enter a title for the NBA.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editForm.dueDate) {
+      toast({
+        title: "Missing Due Date",
+        description: "Please select a due date for the NBA.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateNBAMutation.mutate({
+      id: editingNBA.id,
+      updates: {
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || undefined,
+        evidence: editForm.evidence.trim() || undefined,
+        priority: editForm.priority,
+        status: editForm.status,
+        dueDate: new Date(editForm.dueDate).toISOString()
+      }
+    });
+    
+    handleCloseEditDialog();
   };
 
   const getPriorityColor = (priority: string) => {
@@ -325,6 +400,8 @@ export default function NbasPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handleEditNBA(nba)}
+                                disabled={updateNBAMutation.isPending}
                                 className="text-primary hover:text-primary/80"
                                 data-testid={`button-edit-nba-${nba.id}`}
                               >
@@ -352,6 +429,131 @@ export default function NbasPage() {
           </Card>
         </div>
       </main>
+
+      {/* Edit NBA Dialog */}
+      <Dialog open={!!editingNBA} onOpenChange={(open) => !open && handleCloseEditDialog()}>
+        <DialogContent className="sm:max-w-[600px]" data-testid="dialog-edit-nba">
+          <DialogHeader>
+            <DialogTitle>Edit Next Best Action</DialogTitle>
+            <DialogDescription>
+              Update the details for this next best action.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title *</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                placeholder="Enter NBA title"
+                data-testid="input-edit-title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Enter detailed description"
+                rows={3}
+                data-testid="textarea-edit-description"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-evidence">Evidence</Label>
+              <Textarea
+                id="edit-evidence"
+                value={editForm.evidence}
+                onChange={(e) => setEditForm({ ...editForm, evidence: e.target.value })}
+                placeholder="Enter supporting evidence"
+                rows={2}
+                data-testid="textarea-edit-evidence"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-priority">Priority *</Label>
+                <Select 
+                  value={editForm.priority} 
+                  onValueChange={(value) => setEditForm({ ...editForm, priority: value as "High" | "Medium" | "Low" })}
+                >
+                  <SelectTrigger data-testid="select-edit-priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status *</Label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value as "Open" | "In Progress" | "Completed" | "Overdue" })}
+                >
+                  <SelectTrigger data-testid="select-edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Open">Open</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-due-date">Due Date *</Label>
+              <Input
+                id="edit-due-date"
+                type="datetime-local"
+                value={editForm.dueDate}
+                onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                data-testid="input-edit-due-date"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={handleCloseEditDialog}
+              data-testid="button-cancel-edit"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveEdit}
+              disabled={updateNBAMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              {updateNBAMutation.isPending ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
