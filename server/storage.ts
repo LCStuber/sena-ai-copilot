@@ -58,6 +58,7 @@ export interface IStorage {
 
   // Next Best Actions methods
   getNextBestActions(filters?: { accountId?: string; status?: string; userId?: string }): Promise<NextBestAction[]>;
+  getNBAsByAccount(accountId: string): Promise<NextBestAction[]>;
   createNextBestAction(nba: InsertNextBestAction): Promise<NextBestAction>;
   updateNextBestAction(id: string, updates: Partial<NextBestAction>): Promise<NextBestAction>;
   deleteNextBestAction(id: string): Promise<void>;
@@ -213,6 +214,14 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(nextBestActions)
+      .orderBy(nextBestActions.dueDate);
+  }
+
+  async getNBAsByAccount(accountId: string): Promise<NextBestAction[]> {
+    return await db
+      .select()
+      .from(nextBestActions)
+      .where(eq(nextBestActions.accountId, accountId))
       .orderBy(nextBestActions.dueDate);
   }
 
