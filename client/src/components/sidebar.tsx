@@ -22,7 +22,11 @@ const navigation = [
   { name: "CRM Integration", href: "/artifacts", icon: Database },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  className?: string;
+}
+
+export default function Sidebar({ className = "" }: SidebarProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -41,7 +45,7 @@ export default function Sidebar() {
   };
 
   return (
-    <nav className={`${isCollapsed ? 'w-16' : 'w-64'} bg-card shadow-sm border-r border-border flex flex-col h-screen transition-all duration-300`}>
+    <nav className={`${isCollapsed ? 'w-16' : 'w-64'} bg-card shadow-sm border-r border-border flex-col h-screen transition-all duration-300 ${className}`}>
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">

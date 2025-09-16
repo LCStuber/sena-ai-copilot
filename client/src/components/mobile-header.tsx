@@ -22,7 +22,11 @@ const navigation = [
   { name: "CRM Integration", href: "/artifacts", icon: Database },
 ];
 
-export default function MobileHeader() {
+interface MobileHeaderProps {
+  className?: string;
+}
+
+export default function MobileHeader({ className = "" }: MobileHeaderProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -46,7 +50,7 @@ export default function MobileHeader() {
   };
 
   return (
-    <header className="w-full bg-card shadow-sm border-b border-border">
+    <header className={`w-full bg-card shadow-sm border-b border-border ${className}`}>
       <div className="flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <div className="flex items-center space-x-3">

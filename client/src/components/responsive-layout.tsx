@@ -1,4 +1,3 @@
-import { useResponsive } from "@/hooks/use-responsive";
 import Sidebar from "./sidebar";
 import MobileHeader from "./mobile-header";
 
@@ -7,29 +6,20 @@ interface ResponsiveLayoutProps {
 }
 
 export default function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
-  const { isMobile, isTouch, screenWidth } = useResponsive();
-  
-  // Show mobile layout for mobile screens or touch devices with small screens
-  const showMobileLayout = isMobile || (isTouch && screenWidth <= 768);
-
-  // Keep a stable component tree to prevent state loss during breakpoint changes
+  // Single stable component tree with responsive chrome using Tailwind classes
   return (
     <div className="flex h-screen bg-background">
-      {/* Mobile Header - shown only on mobile */}
-      <div className={showMobileLayout ? "flex flex-col w-full" : "hidden"}>
-        <MobileHeader />
+      {/* Sidebar - hidden on mobile, visible on desktop */}
+      <Sidebar className="hidden md:flex" />
+      
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col">
+        {/* Mobile Header - visible on mobile, hidden on desktop */}
+        <MobileHeader className="md:hidden" />
+        
+        {/* Main content - children render only once */}
         <main className="flex-1 overflow-auto">
           <div className="p-4 md:p-6">
-            {children}
-          </div>
-        </main>
-      </div>
-      
-      {/* Desktop Sidebar - shown only on desktop */}
-      <div className={showMobileLayout ? "hidden" : "flex w-full"}>
-        <Sidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="p-6">
             {children}
           </div>
         </main>
