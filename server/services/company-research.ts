@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { SENA_PROMPTS } from './sena-system-prompt';
 
-// Using gpt-4o-mini for company research
+// Using gpt-5-mini for company research
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
@@ -93,7 +93,7 @@ Respond with JSON in this exact format:
   try {
     console.log(`Starting company research for: ${query} (LOB: ${lob})`);
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { 
@@ -197,7 +197,7 @@ Respond with JSON in this exact format:
 
     console.log(`Starting vector search for: ${company}`);
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Company: ${company}\nNumber of passages: ${k}` }

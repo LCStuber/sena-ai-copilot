@@ -28,7 +28,7 @@ import { generateFrameworkNotes, generateCoachingGuidance } from './openai';
 import { storage } from '../storage';
 import { SENA_PROMPTS } from './sena-system-prompt';
 
-// Using gpt-4o-mini for agent conversations
+// Using gpt-5-mini for agent conversations
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
@@ -53,7 +53,7 @@ export async function classifyIntent(
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `${message}${conversationContext}` }
@@ -408,7 +408,7 @@ async function handleGeneralQuestion(params: GeneralQuestionParams) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: validatedParams.question }

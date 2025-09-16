@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { SENA_PROMPTS } from './sena-system-prompt';
 
-// Using gpt-4o-mini for latest AI generation
+// Using gpt-5-mini for latest AI generation
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
@@ -235,7 +235,7 @@ ${companyContext ? `Company Context: ${companyContext}` : ''}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage + "\n\nRespond with valid JSON only." },
         { role: "user", content: `${prompt}\n\nTranscript:\n${transcript}` }
@@ -310,7 +310,7 @@ Example format:
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: `Generate NBAs based on this context:\n\n${JSON.stringify(contextData, null, 2)}` }
@@ -369,7 +369,7 @@ Use friendly, conversational language. Be encouraging and specific. Include actu
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemMessage },
         { 
