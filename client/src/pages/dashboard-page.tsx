@@ -82,6 +82,7 @@ export default function DashboardPage() {
       icon: LayoutDashboard,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      href: "/research",
     },
     {
       title: "Completed NBAs",
@@ -89,6 +90,7 @@ export default function DashboardPage() {
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-100",
+      href: "/nbas",
     },
     {
       title: "Pipeline Value",
@@ -96,6 +98,7 @@ export default function DashboardPage() {
       icon: DollarSign,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
+      href: "/research",
     },
     {
       title: "Conversion Rate",
@@ -103,6 +106,7 @@ export default function DashboardPage() {
       icon: Target,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
+      href: "/nbas",
     },
   ];
 
@@ -140,21 +144,26 @@ export default function DashboardPage() {
             {statCards.map((stat) => {
               const Icon = stat.icon;
               return (
-                <Card key={stat.title} data-testid={`card-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                  <CardContent className="p-4 md:pt-6">
-                    <div className="flex items-center">
-                      <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor}`}>
-                        <Icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
+                <Link key={stat.title} href={stat.href}>
+                  <Card 
+                    className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105" 
+                    data-testid={`card-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <CardContent className="p-4 md:pt-6">
+                      <div className="flex items-center">
+                        <div className={`p-2 md:p-3 rounded-lg ${stat.bgColor}`}>
+                          <Icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
+                        </div>
+                        <div className="ml-3 md:ml-4">
+                          <p className="text-xs md:text-sm font-medium text-muted-foreground">{stat.title}</p>
+                          <p className="text-xl md:text-2xl font-bold text-foreground" data-testid={`text-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                            {statsLoading ? "..." : stat.value}
+                          </p>
+                        </div>
                       </div>
-                      <div className="ml-3 md:ml-4">
-                        <p className="text-xs md:text-sm font-medium text-muted-foreground">{stat.title}</p>
-                        <p className="text-xl md:text-2xl font-bold text-foreground" data-testid={`text-stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                          {statsLoading ? "..." : stat.value}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
