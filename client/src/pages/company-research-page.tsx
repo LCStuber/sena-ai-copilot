@@ -119,7 +119,7 @@ export default function CompanyResearchPage() {
     researchMutation.mutate({ 
       query, 
       lob, 
-      accountId: selectedAccountId && selectedAccountId !== "" ? selectedAccountId : undefined 
+      accountId: selectedAccountId && selectedAccountId !== "" && selectedAccountId !== "none" ? selectedAccountId : undefined 
     });
   };
 
@@ -180,7 +180,7 @@ export default function CompanyResearchPage() {
                         <SelectValue placeholder="Select account to save research" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Don't save to account</SelectItem>
+                        <SelectItem value="none">Don't save to account</SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.name}
@@ -218,7 +218,7 @@ export default function CompanyResearchPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   Research Results: {query}
-                  {selectedAccountId && selectedAccountId !== "" && <Badge variant="secondary">Saved to Account</Badge>}
+                  {selectedAccountId && selectedAccountId !== "" && selectedAccountId !== "none" && <Badge variant="secondary">Saved to Account</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent>

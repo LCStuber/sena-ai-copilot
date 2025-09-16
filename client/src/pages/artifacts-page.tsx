@@ -60,8 +60,8 @@ export default function ArtifactsPage() {
     queryFn: ({ queryKey }) => {
       const [, filters] = queryKey as [string, any];
       const params = new URLSearchParams();
-      if (filters.accountId) params.append('accountId', filters.accountId);
-      if (filters.type) params.append('type', filters.type);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
+      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
       
       return fetch(`/api/artifacts?${params.toString()}`).then(res => {
         if (!res.ok) throw new Error('Failed to fetch artifacts');
